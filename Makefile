@@ -1,0 +1,23 @@
+CC = clang
+CFLAGS = -g
+#DEBUG = -DBINARYDEBUG
+
+SRCS = lib/linkedlist.o main.c lib/talloc.o lib/tokenizer.o lib/parser.o interpreter.c
+HDRS = linkedlist.h value.h talloc.h tokenizer.h parser.h interpreter.h
+OBJS = $(SRCS:.c=.o)
+
+.PHONY: interpreter   # forces a rebuild always
+interpreter: $(OBJS)
+	$(CC) -rdynamic $(CFLAGS) $^  -o $@
+
+.PHONY: phony_target
+phony_target:
+
+%.o : %.c $(HDRS) phony_target
+	$(CC)  $(CFLAGS) $(DEBUG) -c $<  -o $@
+
+.PHONY: clean
+clean:
+	rm *.o
+	rm interpreter
+
