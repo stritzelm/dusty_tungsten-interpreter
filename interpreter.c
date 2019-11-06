@@ -1,6 +1,6 @@
 /*
 created by dillon lanier 11-5-2019 for programming languages with dave musicant
-* /
+*/
 
 #include "tokenizer.h"
 #include "value.h"
@@ -14,7 +14,6 @@ created by dillon lanier 11-5-2019 for programming languages with dave musicant
 #include <ctype.h>
 
 
-
 Frame *makeFrame(Frame *parent) {
     Frame *frame = talloc(sizeof(Frame));
     (*frame).bindings = makeNull();
@@ -22,27 +21,18 @@ Frame *makeFrame(Frame *parent) {
     return frame;
 }
 
-Value *evalIf(Value *args, Frame *frame) {
-    Value *test = car(args);
-    Value *expressions = cdr(args);
-    //int testresult = eval(test, frame);   //evaluate the test, get back a int bool.
-    //printf("bool type %u\n",test->type );
 
-    //if(test->type == BOOL_TYPE){
-        if (test->b == 1) {
-        //printf("IN THE TRUE CASE OF EVAL\n");
-        //printf("%u type \n",(car(expressions))->type );
-        return eval(car(expressions), frame);       //true expression
-        } else {
-        //printf("IN THE FALSE CASE OF EVAL IF\n");
-        return eval(car(cdr(expressions)), frame);      //false expression
-        }
-    // }else{
-    //     printf("evaluation error: condition is not a bool type\n");
-    //     texit(1);
-    //     return NULL;
-    // }
+Value *evalIf(Value *args, Frame *frame) {
+    Value *test = eval(car(args), frame);
+    Value *expressions = cdr(args);
     
+    if (test->i == 1) {
+        printf("IN THE TRUE CASE OF EVAL\n");
+        return eval(car(expressions), frame);       //true expression
+    } else {
+        printf("IN THE FALSE CASE OF EVAL IF\n");
+        return eval(car(cdr(expressions)), frame);      //false expression
+    }
 }
 
 Value *evalLet(Value *args, Frame *frame) {
@@ -55,30 +45,26 @@ Value *evalLet(Value *args, Frame *frame) {
             texit(1);
             return NULL;
     }
-
     else{
-
         Value *expressions = car(cdr(args));
-        (subFrame->bindings)->type = CONS_TYPE;
         Value *symbol;
         Value *bindingsExp;
 
-        //printf("type %u\n",(car(car(bindings)))->type );
+        printf("type %u\n",(car(car(bindings)))->type );
         while(bindings->type != NULL_TYPE){ 
             symbol = car(car(bindings)); //takes symbol of binding
-            
             bindingsExp = car(cdr(car(bindings)));
 
-        if(symbol->type != SYMBOL_TYPE){
+        //if(symbol->type != SYMBOL_TYPE){
 
             tempBinding = cons(symbol, eval(bindingsExp, subFrame));  //create binding  
-        } else{
-            printf("evaluation error: variable is not a symbol\n");
-            texit(1);
-        }
+        //} else{
+        //    printf("evaluation error: variable is not a symbol\n");
+        //    texit(1);
+        //}
 
-        bindings = cdr(bindings); 
-        subFrame->bindings = cons(tempBinding, subFrame->bindings); //adds binding to subframe
+            bindings = cdr(bindings); 
+            subFrame->bindings = cons(tempBinding, subFrame->bindings); //adds binding to subframe
         }
         subFrame->parent = frame;
         return eval(expressions,subFrame);
@@ -92,15 +78,17 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
     Frame *currFrame = frame;
     Value *currBinding;
     Value *nextBinding = frame->bindings ;
-
+    printf("%u symbol type\n", tree->type);
+    if(tree->type == SYMBOL_TYPE){
+    
+    }
     while(currFrame != NULL){ 
         currBinding = frame->bindings; //iterates through frame
 
         while(nextBinding->type != NULL_TYPE){ //checks in current frame for binding match
             currBinding = car(nextBinding);
-            if(tree ==currBinding){
-                printf("hit\n");
-                return car(cdr(nextBinding));
+            if(!strcmp(tree->s, car(currBinding)->s)){
+                return cdr(currBinding);
             }
             nextBinding = cdr(nextBinding);
         }
@@ -143,10 +131,10 @@ Value *eval(Value *tree, Frame *frame) {
             //eval(cdr(tree), frame);
             //Sanity and error checking on first...
             //printf("HERE WE ARE\n");
-            if (strcmp(first->symbol,"if") == 0) {
+            if (strcmp(first->s,"if") == 0) {
                 result = evalIf(args,frame);
             }
-            else if (!strcmp(first->symbol,"let")) {
+            else if (!strcmp(first->s,"let")) {
                 result = evalLet(args,frame);
              }
             else {
@@ -162,20 +150,47 @@ Value *eval(Value *tree, Frame *frame) {
     return result;
 }
 //helper method to print results?
-void printHelper(Value* tree){
-    if (tree->type == INT_TYPE) {
-        printf("%i\n", tree->i);
-    } else if (tree->type == STR_TYPE) {
-        printf("%s\n", tree->s);
-    } else if (tree->type == SYMBOL_TYPE) {
-        printf("%s\n", tree->symbol);
-    } else{
-        printf("nothing \n");
-    }
-        
 
-       
+        
+void printHelper(Value *list) {
+    
+    switch ((*list).type) {
+        case INT_TYPE:
+            printf("%i: Integer \n ", (*list).i);
+            break;
+        case DOUBLE_TYPE:
+            printf("%f: Double \n", (*list).d);
+            break;
+        case STR_TYPE:
+            printf("%s: String \n", (*list).s);
+            break;
+        case NULL_TYPE:
+            printf("NULL \n");
+            break;
+        case CONS_TYPE:
+            printHelper((*list).c.car);
+            printHelper((*list).c.cdr); 
+            break;
+        case PTR_TYPE:
+            printf("%p: pointer \n ", (*list).p);
+            break;
+        case OPEN_TYPE:
+            printf("%c: open \n", (*list).s);
+            break;
+        case CLOSE_TYPE:
+            printf("%c: Close \n", (*list).s);
+            break;
+        case BOOL_TYPE:
+            printf("%i:Bool \n", (*list).i);
+            break;
+        case SYMBOL_TYPE:
+               printf("%s: Symbol \n", (*list).s);
+            break;
+            
+    }
 }
+       
+
 void interpret(Value *tree) {
 
     Frame *globalFrame = makeFrame(NULL);
