@@ -25,14 +25,17 @@ Frame *makeFrame(Frame *parent) {
 Value *evalIf(Value *args, Frame *frame) {
     Value *test = eval(car(args), frame);
     Value *expressions = cdr(args);
-    
-    if (test->i == 1) {
-        printf("IN THE TRUE CASE OF EVAL\n");
-        return eval(car(expressions), frame);       //true expression
+    if(test->type == BOOL_TYPE){
+        if (test->i == 1) {
+            return eval(car(expressions), frame);       //true expression
+        } else {
+            return eval(car(cdr(expressions)), frame);      //false expression
+        }
     } else {
-        printf("IN THE FALSE CASE OF EVAL IF\n");
-        return eval(car(cdr(expressions)), frame);      //false expression
+        printf("evaluation error: condition is not a boolean\n");
+        texit(1);
     }
+    
 }
 
 Value *evalLet(Value *args, Frame *frame) {
@@ -40,32 +43,47 @@ Value *evalLet(Value *args, Frame *frame) {
     Value *bindings = car(args);
     Value *tempBinding;
 
-    if((cdr(args))->type == NULL_TYPE){
-            printf("evaluation error: no body expression\n");
-            texit(1);
-            return NULL;
+    if(bindings->type != CONS_TYPE){
+        printf("evaluation error: list of bindings is not nested\n");
+        texit(1);
     }
-    else{
+
+    if((cdr(args))->type == NULL_TYPE && cdr(args)->type == CONS_TYPE){
+        printf("evaluation error: no body expression\n");
+        texit(1);
+        return NULL;
+    }
+    else{    
         Value *expressions = car(cdr(args));
         Value *symbol;
         Value *bindingsExp;
 
-        printf("type %u\n",(car(car(bindings)))->type );
+        //printf("type %u\n",(car(car(bindings)))->type );
+        if(bindings->type != CONS_TYPE){
+            printf("evaluation error: improper binding\n");
+            texit(1);
+        }
         while(bindings->type != NULL_TYPE){ 
-            symbol = car(car(bindings)); //takes symbol of binding
-            bindingsExp = car(cdr(car(bindings)));
-
-        //if(symbol->type != SYMBOL_TYPE){
-
-            tempBinding = cons(symbol, eval(bindingsExp, subFrame));  //create binding  
-        //} else{
-        //    printf("evaluation error: variable is not a symbol\n");
-        //    texit(1);
-        //}
-
+            if(car(bindings)->type == CONS_TYPE && cdr(car(bindings))->type == CONS_TYPE && cdr(cdr(car(bindings)))->type == NULL_TYPE){
+                symbol = car(car(bindings)); //takes symbol of binding
+                bindingsExp = car(cdr(car(bindings)));
+        
+                if(symbol->type == SYMBOL_TYPE){
+                    tempBinding = cons(symbol, eval(bindingsExp, subFrame));  //create binding  
+                 }else{
+                    printf("evaluation error: variable is not a symbol\n");
+                    texit(1);
+                }
+            }else{
+                printf("evaluation error: invalid list of bindings\n");
+                texit(1);
+            }
             bindings = cdr(bindings); 
             subFrame->bindings = cons(tempBinding, subFrame->bindings); //adds binding to subframe
-        }
+            }
+
+           
+        
         subFrame->parent = frame;
         return eval(expressions,subFrame);
     }      
@@ -78,7 +96,6 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
     Frame *currFrame = frame;
     Value *currBinding;
     Value *nextBinding = frame->bindings ;
-    printf("%u symbol type\n", tree->type);
     if(tree->type == SYMBOL_TYPE){
     
     }
@@ -114,7 +131,7 @@ Value *eval(Value *tree, Frame *frame) {
            return tree;
            break;
          case SYMBOL_TYPE:
-         printf("hit\n");
+         
             return eval(lookUpSymbol(tree, frame), frame);
             break;
          case STR_TYPE:
@@ -194,8 +211,13 @@ void printHelper(Value *list) {
 void interpret(Value *tree) {
 
     Frame *globalFrame = makeFrame(NULL);
-    tree = car(tree);
-    Value *results = eval(tree, globalFrame);
-    printHelper(results);
+    //tree = car(tree);
+    Value *results;
+    while(tree->type != NULL_TYPE){
+        results = eval(car(tree), globalFrame);
+        printHelper(results);
+        tree = cdr(tree);
+    }
+    
 
 }
