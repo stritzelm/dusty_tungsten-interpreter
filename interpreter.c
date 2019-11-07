@@ -21,7 +21,7 @@ int quote = 0; // could pass this into eval each time, if it's 1 means
 /*
 helper method that prints a space for output formatting
 */
-void printSpace1(Value *prev) {
+void printSpace(Value *prev) {
     if ((*prev).type != NULL_TYPE && (*prev).type != OPEN_TYPE) {
         printf(" ");
     }
@@ -30,51 +30,50 @@ void printSpace1(Value *prev) {
 /*
 Helper function for displaying a parse tree to the screen.
 */
-void printTreeHelper1(Value *tree, Value *prev, int empty) {
+void printInterpreterHelper(Value *tree, Value *prev, int empty) {
 
     switch((*tree).type) {
         case BOOL_TYPE:
-            printSpace1(prev);
+            printSpace(prev);
             printf("%i", (*tree).i);
             (*prev).type = BOOL_TYPE;
             break;
         case SYMBOL_TYPE:
-            printSpace1(prev);
+            printSpace(prev);
             printf("%s", (*tree).s);
             (*prev).type = SYMBOL_TYPE;
             break;
         case INT_TYPE:
-            printSpace1(prev);
+            printSpace(prev);
             printf("%i", (*tree).i);
             (*prev).type = INT_TYPE;
             break;
         case DOUBLE_TYPE:
-            printSpace1(prev);
+            printSpace(prev);
             printf("%f", (*tree).d);
             (*prev).type = DOUBLE_TYPE;
             break;
         case STR_TYPE:
-            printSpace1(prev);
+            printSpace(prev);
             printf("%s", (*tree).s);
             (*prev).type = STR_TYPE;
             break;
         case PTR_TYPE:
-            printSpace1(prev);
+            printSpace(prev);
             printf("%p", (*tree).p);
             (*prev).type = PTR_TYPE;
             break;
         case CONS_TYPE:
             if (car(tree)->type == CONS_TYPE) {
-                printSpace1(prev);
+                printSpace(prev);
                 printf("(");
                 (*prev).type = OPEN_TYPE;
             }
-            printTreeHelper1(car(tree), prev, 1);
-            //printSpace1(prev);
+            printInterpreterHelper(car(tree), prev, 1);
             if (car(tree)->type == CONS_TYPE) {
                 printf(")");
             }
-            printTreeHelper1(cdr(tree), prev, 0);  
+            printInterpreterHelper(cdr(tree), prev, 0);  
             break;
         case NULL_TYPE:
             if (empty == 1) {
@@ -92,10 +91,10 @@ void printTreeHelper1(Value *tree, Value *prev, int empty) {
 This function displays a parse tree to the screen.
 feeds the tree, the previously printed thing, and a bool to a helper method
  */
-void printTree1(Value *tree) {
+void printInterpreter(Value *tree) {
 
     Value *prev = makeNull();
-    printTreeHelper1(tree, prev, 1);
+    printInterpreterHelper(tree, prev, 1);
 
 }
 
@@ -120,6 +119,7 @@ Value *evalIf(Value *args, Frame *frame) {
     } else {
         printf("evaluation error: condition is not a boolean\n");
         texit(1);
+        return NULL;
     }
     
 }
@@ -160,7 +160,8 @@ Value *evalLet(Value *args, Frame *frame) {
                 bindingsExp = car(cdr(car(bindings)));
         
                 if(symbol->type == SYMBOL_TYPE){
-                    tempBinding = cons(symbol, eval(bindingsExp, subFrame));  //create binding  
+                    
+                    tempBinding = cons(symbol, eval(bindingsExp, frame));  //create binding  
                  }else{
                     printf("evaluation error: variable is not a symbol\n");
                     texit(1);
@@ -171,18 +172,18 @@ Value *evalLet(Value *args, Frame *frame) {
             }
             bindings = cdr(bindings); 
             subFrame->bindings = cons(tempBinding, subFrame->bindings); //adds binding to subframe
-            }
+        }
 
            
         
-        subFrame->parent = frame;
+        //subFrame->parent = frame;
         while (cdr(expressions)->type != NULL_TYPE) {
             eval(car(expressions), subFrame);
             expressions = cdr(expressions);
         }
         // printf("ABOUT TO PRINT BINDINGS\n");
-        printf("EXPRESSIONS: %s\n", expressions->s);
-        // printTree1(subFrame->bindings);
+        //printf("EXPRESSIONS: %s\n", expressions->s);
+        // printInterpreterHelper(subFrame->bindings);
         // printf("\n");
         return eval(expressions,subFrame);
     }      
@@ -199,7 +200,7 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
     
     }
     while(currFrame != NULL){ 
-        currBinding = frame->bindings; //iterates through frame
+        nextBinding = currFrame->bindings; //iterates through frame
 
         while(nextBinding->type != NULL_TYPE){ //checks in current frame for binding match
             currBinding = car(nextBinding);
@@ -210,6 +211,7 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
         }
         currFrame = currFrame->parent;
     }
+    printf("%s\n", tree->s);
     printf("ERROR: variable is not bound to anything\n");
     texit(1);
     return NULL;
@@ -269,47 +271,6 @@ Value *eval(Value *tree, Frame *frame) {
     }
     return result;
 }
-//helper method to print results?
-
-/*     
-void printHelper(Value *list) {
-    
-    switch ((*list).type) {
-        case INT_TYPE:
-            printf("%i: Integer \n ", (*list).i);
-            break;
-        case DOUBLE_TYPE:
-            printf("%f: Double \n", (*list).d);
-            break;
-        case STR_TYPE:
-            printf("%s: String \n", (*list).s);
-            break;
-        case NULL_TYPE:
-            printf("NULL \n");
-            break;
-        case CONS_TYPE:
-            printHelper((*list).c.car);
-            printHelper((*list).c.cdr); 
-            break;
-        case PTR_TYPE:
-            printf("%p: pointer \n ", (*list).p);
-            break;
-        case OPEN_TYPE:
-            printf("%c: open \n", (*list).s);
-            break;
-        case CLOSE_TYPE:
-            printf("%c: Close \n", (*list).s);
-            break;
-        case BOOL_TYPE:
-            printf("%i:Bool \n", (*list).i);
-            break;
-        case SYMBOL_TYPE:
-               printf("%s: Symbol \n", (*list).s);
-            break;
-            
-    }
-}
-*/
 
 void interpret(Value *tree) {
 
@@ -318,7 +279,8 @@ void interpret(Value *tree) {
     Value *results;
     while(tree->type != NULL_TYPE){
         results = eval(car(tree), globalFrame);
-        printTree1(results);
+        printInterpreter(results);
+        printf("\n");
         tree = cdr(tree);
     }
     
