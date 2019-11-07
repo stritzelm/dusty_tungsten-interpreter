@@ -13,6 +13,92 @@ created by dillon lanier 11-5-2019 for programming languages with dave musicant
 #include <stdlib.h>
 #include <ctype.h>
 
+int quote = 0; // could pass this into eval each time, if it's 1 means
+//there is a quote for the cons type bc problem is cons is (a b c). So if quote 
+//is true we can just return tree and print that?
+
+
+/*
+helper method that prints a space for output formatting
+*/
+void printSpace1(Value *prev) {
+    if ((*prev).type != NULL_TYPE && (*prev).type != OPEN_TYPE) {
+        printf(" ");
+    }
+}
+
+/*
+Helper function for displaying a parse tree to the screen.
+*/
+void printTreeHelper1(Value *tree, Value *prev, int empty) {
+
+    switch((*tree).type) {
+        case BOOL_TYPE:
+            printSpace1(prev);
+            printf("%i", (*tree).i);
+            (*prev).type = BOOL_TYPE;
+            break;
+        case SYMBOL_TYPE:
+            printSpace1(prev);
+            printf("%s", (*tree).s);
+            (*prev).type = SYMBOL_TYPE;
+            break;
+        case INT_TYPE:
+            printSpace1(prev);
+            printf("%i", (*tree).i);
+            (*prev).type = INT_TYPE;
+            break;
+        case DOUBLE_TYPE:
+            printSpace1(prev);
+            printf("%f", (*tree).d);
+            (*prev).type = DOUBLE_TYPE;
+            break;
+        case STR_TYPE:
+            printSpace1(prev);
+            printf("%s", (*tree).s);
+            (*prev).type = STR_TYPE;
+            break;
+        case PTR_TYPE:
+            printSpace1(prev);
+            printf("%p", (*tree).p);
+            (*prev).type = PTR_TYPE;
+            break;
+        case CONS_TYPE:
+            if (car(tree)->type == CONS_TYPE) {
+                printSpace1(prev);
+                printf("(");
+                (*prev).type = OPEN_TYPE;
+            }
+            printTreeHelper1(car(tree), prev, 1);
+            //printSpace1(prev);
+            if (car(tree)->type == CONS_TYPE) {
+                printf(")");
+            }
+            printTreeHelper1(cdr(tree), prev, 0);  
+            break;
+        case NULL_TYPE:
+            if (empty == 1) {
+                printf("()");
+            }
+            (*prev).type = CLOSE_TYPE;
+            break;
+        default:
+            printf("ERROR: Unaccounted for type\n");
+    }   
+}
+
+
+/*
+This function displays a parse tree to the screen.
+feeds the tree, the previously printed thing, and a bool to a helper method
+ */
+void printTree1(Value *tree) {
+
+    Value *prev = makeNull();
+    printTreeHelper1(tree, prev, 1);
+
+}
+
 
 Frame *makeFrame(Frame *parent) {
     Frame *frame = talloc(sizeof(Frame));
@@ -38,6 +124,11 @@ Value *evalIf(Value *args, Frame *frame) {
     
 }
 
+Value *evalQuote(Value *args) {
+    //just want to return same stuff without the quote in front.
+    return args;
+}
+
 Value *evalLet(Value *args, Frame *frame) {
     Frame *subFrame = makeFrame(frame);
     Value *bindings = car(args);
@@ -54,7 +145,7 @@ Value *evalLet(Value *args, Frame *frame) {
         return NULL;
     }
     else{    
-        Value *expressions = car(cdr(args));
+        Value *expressions = cdr(args);
         Value *symbol;
         Value *bindingsExp;
 
@@ -85,6 +176,14 @@ Value *evalLet(Value *args, Frame *frame) {
            
         
         subFrame->parent = frame;
+        while (cdr(expressions)->type != NULL_TYPE) {
+            eval(car(expressions), subFrame);
+            expressions = cdr(expressions);
+        }
+        // printf("ABOUT TO PRINT BINDINGS\n");
+        printf("EXPRESSIONS: %s\n", expressions->s);
+        // printTree1(subFrame->bindings);
+        // printf("\n");
         return eval(expressions,subFrame);
     }      
 
@@ -120,7 +219,7 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
 Value *eval(Value *tree, Frame *frame) {
 
     Value *result = makeNull();
-    //printf("HERE:%\n", tree);
+    //printf("eval called:\n", tree);
     switch (tree->type) {
         case INT_TYPE:
             //printf("%i\n", tree->i);
@@ -132,7 +231,7 @@ Value *eval(Value *tree, Frame *frame) {
            break;
          case SYMBOL_TYPE:
          
-            return eval(lookUpSymbol(tree, frame), frame);
+            return lookUpSymbol(tree, frame);
             break;
          case STR_TYPE:
             return tree;
@@ -154,8 +253,12 @@ Value *eval(Value *tree, Frame *frame) {
             else if (!strcmp(first->s,"let")) {
                 result = evalLet(args,frame);
              }
-            else {
-                printf("ERROR: invald expression to evaluate\n");
+            else if (!strcmp(first->s, "quote")) {
+                //printf("IN THE QUOTE CASE\n");
+                result = evalQuote(args);
+            } else {
+
+                result = eval(first, frame);
             }
             break;
         }
@@ -168,7 +271,7 @@ Value *eval(Value *tree, Frame *frame) {
 }
 //helper method to print results?
 
-        
+/*     
 void printHelper(Value *list) {
     
     switch ((*list).type) {
@@ -206,7 +309,7 @@ void printHelper(Value *list) {
             
     }
 }
-       
+*/
 
 void interpret(Value *tree) {
 
@@ -215,9 +318,11 @@ void interpret(Value *tree) {
     Value *results;
     while(tree->type != NULL_TYPE){
         results = eval(car(tree), globalFrame);
-        printHelper(results);
+        printTree1(results);
         tree = cdr(tree);
     }
     
 
 }
+
+
