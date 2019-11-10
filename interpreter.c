@@ -13,7 +13,7 @@ created by dillon lanier 11-5-2019 for programming languages with dave musicant
 #include <stdlib.h>
 #include <ctype.h>
 
-
+Frame *topFrame = makeFrame(NULL);
 
 /*
 helper method that prints a space for output formatting
@@ -103,12 +103,12 @@ Frame *makeFrame(Frame *parent) {
     return frame;
 }
 
-Value *makeClosure(Value *args, Frame *parent){
+Value *makeClosure(Value *args, Frame *frame){
     Value *value = talloc(sizeof(Value));
     value->type = CLOSURE_TYPE;
     (*value).cl.paramNames = car(args);
-    (*value).cl.functionCode = cdr(args);
-    (*value).cl.frame = makeFrame(parent);
+    (*value).cl.functionCode = car(cdr(args));
+    (*value).cl.frame = frame;
     return value;
 }
 
@@ -122,34 +122,36 @@ Value *evalDefine(Value *args, Frame *frame){
     Value *expression;
     Frame *currFrame = frame;
     Value *tempBinding;
+    Value *voidValue = makeNull();
+    (*voidValue).type = VOID_TYPE;
 
-    while(frame != NULL){
-        //iterates to global frame;
-        currFrame = currFrame->parent;
-    }
+    currFrame = topFrame; //assignment currFrame to top frame for bindings
     variable = car(args);
-    expression = cdr(args);
+    expression = eval(car(cdr(args)), currFrame);
 
-    tempBinding = cons(variable, eval(expression, frame)); //creates binding of variable and expression
+    tempBinding = cons(variable, expression); //creates binding of variable and expression
     currFrame->bindings = cons(tempBinding, currBinding->bindings); //add binding to global frame
 
+    return voidValue;
 }   
 
-//lambda creates a frame
-//parent is frame pointed to by environment
-//create local variables (bindings to match the parameters)
-// it executes (evals) the cdr in the body of the closure
 
+
+//create closure
 Value *evalLambda(Value *args, Frame *frame){
-//Frame *lambdaFrame = makeFrame(frame);
     Value *closure = makeClosure(args, frame);
-    //while((*closure))
+    //Frame *lambdaFrame = makeFrame((*closure).cl.frame);
+    //Value *bindings = car
+    
 
 
 
 }
 
-
+//lambda creates a frame
+//parent is frame pointed to by environment
+//create local variables (bindings to match the parameters)
+// it executes (evals) the cdr in the body of the closure
 Value *apply(Value *function, Value *args){
 
 }
@@ -308,7 +310,10 @@ Value *eval(Value *tree, Frame *frame) {
             } else if (!strcmp(first->s, "define")){ 
                 result = evalDefine(args, frame);
 
-            } else {
+            } else if (!strcmp(first->s, "lambda")){ 
+                result = evalLambda(args, frame);
+
+            }else {
 
                 result = eval(first, frame);
             }
@@ -324,7 +329,8 @@ Value *eval(Value *tree, Frame *frame) {
 
 void interpret(Value *tree) {
 
-    Frame *globalFrame = makeFrame(NULL);
+    Frame *globalFrame = topFrame;
+    
     //tree = car(tree);
     Value *results;
     while(tree->type != NULL_TYPE){
