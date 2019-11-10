@@ -13,9 +13,6 @@ created by dillon lanier 11-5-2019 for programming languages with dave musicant
 #include <stdlib.h>
 #include <ctype.h>
 
-int quote = 0; // could pass this into eval each time, if it's 1 means
-//there is a quote for the cons type bc problem is cons is (a b c). So if quote 
-//is true we can just return tree and print that?
 
 
 /*
@@ -105,6 +102,58 @@ Frame *makeFrame(Frame *parent) {
     (*frame).parent = parent;
     return frame;
 }
+
+Value *makeClosure(Value *args, Frame *parent){
+    Value *value = talloc(sizeof(Value));
+    value->type = CLOSURE_TYPE;
+    (*value).cl.paramNames = car(args);
+    (*value).cl.functionCode = cdr(args);
+    (*value).cl.frame = makeFrame(parent);
+    return value;
+}
+
+//creates a new binding of var to the value of expr
+//modifies current environment frame
+//need to have a top or global frame, contains binding of variables created using define
+
+Value *evalDefine(Value *args, Frame *frame){
+//iterate to parent frame
+    Value *variable;
+    Value *expression;
+    Frame *currFrame = frame;
+    Value *tempBinding;
+
+    while(frame != NULL){
+        //iterates to global frame;
+        currFrame = currFrame->parent;
+    }
+    variable = car(args);
+    expression = cdr(args);
+
+    tempBinding = cons(variable, eval(expression, frame)); //creates binding of variable and expression
+    currFrame->bindings = cons(tempBinding, currBinding->bindings); //add binding to global frame
+
+}   
+
+//lambda creates a frame
+//parent is frame pointed to by environment
+//create local variables (bindings to match the parameters)
+// it executes (evals) the cdr in the body of the closure
+
+Value *evalLambda(Value *args, Frame *frame){
+//Frame *lambdaFrame = makeFrame(frame);
+    Value *closure = makeClosure(args, frame);
+    //while((*closure))
+
+
+
+}
+
+
+Value *apply(Value *function, Value *args){
+
+}
+
 
 
 Value *evalIf(Value *args, Frame *frame) {
@@ -251,13 +300,14 @@ Value *eval(Value *tree, Frame *frame) {
             //printf("HERE WE ARE\n");
             if (strcmp(first->s,"if") == 0) {
                 result = evalIf(args,frame);
-            }
-            else if (!strcmp(first->s,"let")) {
+            } else if (!strcmp(first->s,"let")) {
                 result = evalLet(args,frame);
-             }
-            else if (!strcmp(first->s, "quote")) {
+             } else if (!strcmp(first->s, "quote")) {
                 //printf("IN THE QUOTE CASE\n");
                 result = evalQuote(args);
+            } else if (!strcmp(first->s, "define")){ 
+                result = evalDefine(args, frame);
+
             } else {
 
                 result = eval(first, frame);
