@@ -13,7 +13,7 @@ created by dillon lanier 11-5-2019 for programming languages with dave musicant
 #include <stdlib.h>
 #include <ctype.h>
 
-Frame *topFrame = makeFrame(NULL);
+Frame *topFrame;
 
 /*
 helper method that prints a space for output formatting
@@ -22,6 +22,15 @@ void printSpace(Value *prev) {
     if ((*prev).type != NULL_TYPE && (*prev).type != OPEN_TYPE) {
         printf(" ");
     }
+}
+
+/*
+* Creates a VOID_TYPE value and returns a pointer to it
+*/
+Value *makeVoidValue(){
+    Value *voidValue = makeNull();
+    voidValue->type = VOID_TYPE;
+    return voidValue;
 }
 
 /*
@@ -41,6 +50,7 @@ void printInterpreterHelper(Value *tree, Value *prev, int empty) {
             (*prev).type = SYMBOL_TYPE;
             break;
         case INT_TYPE:
+            
             printSpace(prev);
             printf("%i", (*tree).i);
             (*prev).type = INT_TYPE;
@@ -77,6 +87,8 @@ void printInterpreterHelper(Value *tree, Value *prev, int empty) {
                 printf("()");
             }
             (*prev).type = CLOSE_TYPE;
+            break;
+        case VOID_TYPE:
             break;
         default:
             printf("ERROR: Unaccounted for type\n");
@@ -116,21 +128,23 @@ Value *makeClosure(Value *args, Frame *frame){
 //modifies current environment frame
 //need to have a top or global frame, contains binding of variables created using define
 
-Value *evalDefine(Value *args, Frame *frame){
-//iterate to parent frame
+Value *evalDefine(Value *args, Frame *frame) {
+    
+    //iterate to parent frame
     Value *variable;
     Value *expression;
-    Frame *currFrame = frame;
+    Frame *currFrame = topFrame;
     Value *tempBinding;
-    Value *voidValue = makeNull();
-    (*voidValue).type = VOID_TYPE;
+    Value *voidValue = makeVoidValue();
 
     currFrame = topFrame; //assignment currFrame to top frame for bindings
     variable = car(args);
+    
     expression = eval(car(cdr(args)), currFrame);
-
+    
     tempBinding = cons(variable, expression); //creates binding of variable and expression
-    currFrame->bindings = cons(tempBinding, currBinding->bindings); //add binding to global frame
+
+    currFrame->bindings = cons(tempBinding, currFrame->bindings); //add binding to global frame
 
     return voidValue;
 }   
@@ -143,17 +157,59 @@ Value *evalLambda(Value *args, Frame *frame){
     //Frame *lambdaFrame = makeFrame((*closure).cl.frame);
     //Value *bindings = car
     
-
-
-
+    return closure;
+    
 }
+
+
+
 
 //lambda creates a frame
 //parent is frame pointed to by environment
 //create local variables (bindings to match the parameters)
 // it executes (evals) the cdr in the body of the closure
-Value *apply(Value *function, Value *args){
+Value *apply(Value *function, Value *args) {
+    
 
+    
+    Frame *frame = makeFrame(function->cl.frame);
+    Value *params = function->cl.paramNames;
+    Value *current = args;
+    Value *argName = function->cl.paramNames;
+    
+    // Go through all the actual argument value
+    while(current->type != NULL_TYPE){
+
+        Value *vcurrent = car(current);
+        Value *vargName = car(argName);
+        // Bind the paraname with the actual value
+        Value *result = eval(vcurrent, frame->parent);
+        
+        Value *bind = makeNull();
+        
+        bind = cons(result,bind);
+        bind = cons(vargName,bind);
+        frame->bindings = cons(bind, frame->bindings);
+        
+        current = cdr(current);
+        argName = cdr(argName);
+    }
+    
+
+    Value *last = car(reverse(function->cl.functionCode));
+    
+    return eval(last, frame);
+    
+}
+
+Value *evalEach(args, frame) {
+    
+    Value *returnList = makeNull();
+    while (cdr(args)->type != NULL_TYPE){
+        returnList =  cons(eval(car(args), frame), returnList);
+        args = cdr(args);
+    }
+    return returnList;
 }
 
 
@@ -217,7 +273,7 @@ Value *evalLet(Value *args, Frame *frame) {
                     printf("evaluation error: variable is not a symbol\n");
                     texit(1);
                 }
-            }else{
+            } else{
                 printf("evaluation error: invalid list of bindings\n");
                 texit(1);
             }
@@ -244,6 +300,7 @@ Value *evalLet(Value *args, Frame *frame) {
 
 
 Value *lookUpSymbol(Value *tree, Frame *frame) {
+    
     Frame *currFrame = frame;
     Value *currBinding;
     Value *nextBinding = frame->bindings ;
@@ -254,15 +311,19 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
         nextBinding = currFrame->bindings; //iterates through frame
 
         while(nextBinding->type != NULL_TYPE){ //checks in current frame for binding match
+            
+            
             currBinding = car(nextBinding);
             if(!strcmp(tree->s, car(currBinding)->s)){
+                
                 return cdr(currBinding);
             }
             nextBinding = cdr(nextBinding);
         }
         currFrame = currFrame->parent;
     }
-    printf("%s\n", tree->s);
+    printf("%s\n", tree->s);  // PRINTING OUT ADD-ONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            // THE BUG: its not being found in the frame!
     printf("ERROR: variable is not bound to anything\n");
     texit(1);
     return NULL;
@@ -275,6 +336,7 @@ Value *eval(Value *tree, Frame *frame) {
     //printf("eval called:\n", tree);
     switch (tree->type) {
         case INT_TYPE:
+            
             //printf("%i\n", tree->i);
             return tree;
             break;
@@ -304,18 +366,26 @@ Value *eval(Value *tree, Frame *frame) {
                 result = evalIf(args,frame);
             } else if (!strcmp(first->s,"let")) {
                 result = evalLet(args,frame);
-             } else if (!strcmp(first->s, "quote")) {
+            } else if (!strcmp(first->s, "quote")) {
                 //printf("IN THE QUOTE CASE\n");
                 result = evalQuote(args);
-            } else if (!strcmp(first->s, "define")){ 
+            } else if (!strcmp(first->s, "define")){
+
                 result = evalDefine(args, frame);
 
-            } else if (!strcmp(first->s, "lambda")){ 
+            } else if (!strcmp(first->s, "lambda")){
                 result = evalLambda(args, frame);
+                
+                //printInterpreter((*result).cl.functionCode);
+                // printf(car((*result).cl.paramNames));
 
-            }else {
-
-                result = eval(first, frame);
+            } else {
+                
+              //  if (evaledOperator->type == CLOSURE_TYPE) {
+                    Value *evaledOperator = eval(first, frame);
+                    Value *evaledArgs = evalEach(args, frame);
+                  //  return apply(evaledOperator,evaledArgs);
+             //   }
             }
             break;
         }
@@ -329,17 +399,15 @@ Value *eval(Value *tree, Frame *frame) {
 
 void interpret(Value *tree) {
 
-    Frame *globalFrame = topFrame;
-    
+    topFrame = makeFrame(NULL);
     //tree = car(tree);
     Value *results;
     while(tree->type != NULL_TYPE){
-        results = eval(car(tree), globalFrame);
+        results = eval(car(tree), topFrame);
         printInterpreter(results);
         printf("\n");
         tree = cdr(tree);
     }
-    
 
 }
 
