@@ -1,5 +1,5 @@
 /*
-created by dillon lanier 11-5-2019 for programming languages with dave musicant
+created by dillon lanier, Tony Ngo, Matt Stritzel 11-5-2019 for programming languages with dave musicant
 */
 
 #include "tokenizer.h"
@@ -104,7 +104,6 @@ void printInterpreter(Value *tree) {
 
     Value *prev = makeNull();
     printInterpreterHelper(tree, prev, 1);
-
 }
 
 
@@ -121,7 +120,6 @@ Value *makeClosure(Value *args, Frame *frame){
     (*value).cl.paramNames = car(args);
     (*value).cl.functionCode = car(cdr(args));
     (*value).cl.frame = frame;
-    
     return value;
 }
 
@@ -130,24 +128,15 @@ Value *makeClosure(Value *args, Frame *frame){
 //need to have a top or global frame, contains binding of variables created using define
 
 Value *evalDefine(Value *args, Frame *frame) {
-    
-    //iterate to parent frame
-    Value *variable;
-    Value *expression;
-    Frame *currFrame = topFrame;
-    Value *tempBinding;
+    //using topFrame which is global frame
+    //name of the defined thing
+    Value *variable = car(args);
     Value *voidValue = makeVoidValue();
 
-    currFrame = topFrame; //assignment currFrame to top frame for bindings
-    variable = car(args);
-    
-    //printf(variable->s);
-    
-    expression = eval(car(cdr(args)), currFrame); //CURR
-    
-    tempBinding = cons(variable, expression); //creates binding of variable and expression
-
-    currFrame->bindings = cons(tempBinding, currFrame->bindings); //add binding to global frame
+    //expression is the thing the name variable points to
+    Value *expression = eval(car(cdr(args)), topFrame);
+    Value *tempBinding = cons(variable, expression); //creates binding of variable and expression
+    topFrame->bindings = cons(tempBinding, topFrame->bindings); //add binding to global frame
 
     return voidValue;
 }   
@@ -159,7 +148,6 @@ Value *evalLambda(Value *args, Frame *frame) {
     Value *closure = makeClosure(args, frame);
     return closure;
 }
-
 
 
 //lambda creates a frame
@@ -174,41 +162,34 @@ Value *apply(Value *function, Value *args) {
 
     // Go through all the actual argument value
     while(args->type != NULL_TYPE){
-
         frame->bindings = cons(cons(car(params), car(args)), frame->bindings);
         args = cdr(args);
         params = cdr(params);
-        
     }
+    //printInterpreter(frame->bindings);
     //frame->bindings = new_bindings;    
     return eval(body, frame);
 }
 
+
 Value *evalEach(Value *args, Frame *frame) {
     
-    
     Value *returnList = makeNull();
-    
     if (cdr(args)->type == NULL_TYPE) {
-
         return cons(eval(car(args), frame), returnList);
     } else {
-
-        while (cdr(args)->type != NULL_TYPE){
+        while (args->type != NULL_TYPE){
             returnList =  cons(eval(car(args), frame), returnList);
             args = cdr(args);
         }
-        return returnList;
-
+        //printInterpreter(reverse(returnList));
+        return reverse(returnList);
     }
 }
 
 
-
 Value *evalIf(Value *args, Frame *frame) {
     Value *test = eval(car(args), frame);
-    //printInterpreter(args);
-    //printf("%i\n", test->i);
     Value *expressions = cdr(args);
     if(test->type == BOOL_TYPE){
         if (test->i == 1) {
@@ -220,8 +201,7 @@ Value *evalIf(Value *args, Frame *frame) {
         printf("evaluation error: condition is not a boolean\n");
         texit(1);
         return NULL;
-    }
-    
+    }  
 }
 
 Value *evalQuote(Value *args) {
@@ -249,7 +229,6 @@ Value *evalLet(Value *args, Frame *frame) {
         Value *symbol;
         Value *bindingsExp;
 
-        //printf("type %u\n",(car(car(bindings)))->type );
         if(bindings->type != CONS_TYPE){
             printf("evaluation error: improper binding\n");
             texit(1);
@@ -272,18 +251,13 @@ Value *evalLet(Value *args, Frame *frame) {
             }
             bindings = cdr(bindings); 
             subFrame->bindings = cons(tempBinding, subFrame->bindings); //adds binding to subframe
-            //printf("Ran\n");
         }
-
-           
-        
-        //subFrame->parent = frame;
         while (cdr(expressions)->type != NULL_TYPE) {
             eval(car(expressions), subFrame);
             expressions = cdr(expressions);
         }
         // printf("ABOUT TO PRINT BINDINGS\n");
-        // //printf("EXPRESSIONS: %s\n", expressions->s);
+        // printf("EXPRESSIONS: %s\n", expressions->s);
         // printInterpreter(expressions);
         // printInterpreter(subFrame->bindings);
         // printf("\n");
@@ -293,31 +267,27 @@ Value *evalLet(Value *args, Frame *frame) {
 }
 
 
-
 Value *lookUpSymbol(Value *tree, Frame *frame) {
     
     Frame *currFrame = frame;
-    
     Value *currBinding;
     Value *nextBinding = frame->bindings ;
     
     while(currFrame != NULL){ 
         nextBinding = currFrame->bindings; //iterates through frame
         while(nextBinding->type != NULL_TYPE){ //checks in current frame for binding match
-
-            
             currBinding = car(nextBinding);
             if(!strcmp(tree->s, car(currBinding)->s)){
-                //printf(cdr(currBinding))->i);
                 //printInterpreter(cdr(currBinding));
-                return cdr(currBinding);    // WHY IS IT GETTING THRU THIS?????????????????????
+                return cdr(currBinding);
             }
             nextBinding = cdr(nextBinding);
         }
         currFrame = currFrame->parent;
     }
-
     printf("ERROR: variable is not bound to anything\n");
+    //printf("%s\n", tree->s);
+    //printInterpreter(frame->bindings);
     texit(1);
     return NULL;
 }
@@ -326,20 +296,14 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
 Value *eval(Value *tree, Frame *frame) {
 
     Value *result = makeNull();
-    //printf("eval called:\n", tree);
     switch (tree->type) {
         case INT_TYPE:
-            //printf("int\n");
-            //printf("%i\n", tree->i);
             return tree;
             break;
         case BOOL_TYPE: 
-            //printf("bool\n");
-            //printf("%i\n", tree->b);
            return tree;
            break;
          case SYMBOL_TYPE:
-            //printf("we in here\n");
             return lookUpSymbol(tree, frame);
             break;
          case STR_TYPE:
@@ -347,13 +311,7 @@ Value *eval(Value *tree, Frame *frame) {
             break;
         case CONS_TYPE: {
             Value *first = car(tree);
-            //printf("THIS:%s\n", (*first).symbol);
-            // if ((*first).type == NULL_TYPE) {
-            //  return first;
-            // }
             Value *args = cdr(tree);
-            //eval(car(tree), frame);
-            //eval(cdr(tree), frame);
             //Sanity and error checking on first...
             //printf("HERE WE ARE\n");
             if (strcmp(first->s,"if") == 0) {
@@ -361,30 +319,19 @@ Value *eval(Value *tree, Frame *frame) {
             } else if (!strcmp(first->s,"let")) {
                 result = evalLet(args,frame);
             } else if (!strcmp(first->s, "quote")) {
-                //printf("IN THE QUOTE CASE\n");
                 result = evalQuote(args);
             } else if (!strcmp(first->s, "define")){
                 result = evalDefine(args, frame);
-
             } else if (!strcmp(first->s, "lambda")){
                 result = evalLambda(args, frame);
-                
-                //printInterpreter((*result).cl.functionCode);
-                // printf(car((*result).cl.paramNames));
-
             } else {
               
                 Value *evaledOperator = eval(first, frame);
-                if (evaledOperator->type == CLOSURE_TYPE) {
-                    printf("ITS A CLOSURE\n");
-                }        
-//                displayTokens((*evaledOperator).cl.paramNames);
-//                printf("------------ \n");
-//                displayTokens((*evaledOperator).cl.functionCode);
+                // if (evaledOperator->type == CLOSURE_TYPE) {
+                //     printf("ITS A CLOSURE\n");
+                // }        
                 Value *evaledArgs = evalEach(args, frame);
                 return apply(evaledOperator,evaledArgs); // should return 5 (4 + 1)
-
-             //   }
             }
             break;
         }
@@ -397,18 +344,21 @@ Value *eval(Value *tree, Frame *frame) {
     return result;
 }
 
+
 void interpret(Value *tree) {
 
-    printInterpreter(tree);
+    //printInterpreter(tree);
     topFrame = makeFrame(NULL);
-    //tree = car(tree);
     Value *results;
+
+    printf("\n---------OUTPUT---------------\n");
     while(tree->type != NULL_TYPE){
         results = eval(car(tree), topFrame);
         printInterpreter(results);
         printf("\n");
         tree = cdr(tree);
     }
+    printf("\n\n");
 }
 
 
