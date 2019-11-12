@@ -168,41 +168,23 @@ Value *evalLambda(Value *args, Frame *frame) {
 // it executes (evals) the cdr in the body of the closure
 Value *apply(Value *function, Value *args) {
     
-//    displayTokens(function->cl.functionCode); -- > + x 1
-//    displayTokens(args);   --> 4
-    
-    
     Frame *frame = makeFrame(function->cl.frame);
     Value *params = function->cl.paramNames;
-    Value *current = args;
-    
-    Value *new_bindings = makeNull();
-    Value *cur_param = params;
+    Value *body = (*function).cl.functionCode;
 
     // Go through all the actual argument value
-    while(current->type != NULL_TYPE){
-        
-        Value *list = makeNull();
-        list = cons(car(current), list);
-        list = cons(car(cur_param), list);
-       // displayTokens(list);  // x 4
+    while(args->type != NULL_TYPE){
 
-        new_bindings = cons(list, new_bindings);
+        frame->bindings = cons(cons(car(params), car(args)), frame->bindings);
+        args = cdr(args);
+        params = cdr(params);
         
-        printInterpreter(new_bindings);  // (x 4)
-        current = cdr(current);
-        cur_param = cdr(cur_param);
     }
-    
-    frame->bindings = new_bindings;
-    
-    
-    Value *body = (*function).cl.functionCode;
-    
+    //frame->bindings = new_bindings;    
     return eval(body, frame);
 }
 
-Value *evalEach(args, frame) {
+Value *evalEach(Value *args, Frame *frame) {
     
     
     Value *returnList = makeNull();
@@ -225,6 +207,8 @@ Value *evalEach(args, frame) {
 
 Value *evalIf(Value *args, Frame *frame) {
     Value *test = eval(car(args), frame);
+    //printInterpreter(args);
+    //printf("%i\n", test->i);
     Value *expressions = cdr(args);
     if(test->type == BOOL_TYPE){
         if (test->i == 1) {
@@ -288,6 +272,7 @@ Value *evalLet(Value *args, Frame *frame) {
             }
             bindings = cdr(bindings); 
             subFrame->bindings = cons(tempBinding, subFrame->bindings); //adds binding to subframe
+            //printf("Ran\n");
         }
 
            
@@ -298,10 +283,11 @@ Value *evalLet(Value *args, Frame *frame) {
             expressions = cdr(expressions);
         }
         // printf("ABOUT TO PRINT BINDINGS\n");
-        //printf("EXPRESSIONS: %s\n", expressions->s);
-        // printInterpreterHelper(subFrame->bindings);
+        // //printf("EXPRESSIONS: %s\n", expressions->s);
+        // printInterpreter(expressions);
+        // printInterpreter(subFrame->bindings);
         // printf("\n");
-        return eval(expressions,subFrame);
+        return eval(car(expressions),subFrame);
     }      
 
 }
@@ -343,16 +329,17 @@ Value *eval(Value *tree, Frame *frame) {
     //printf("eval called:\n", tree);
     switch (tree->type) {
         case INT_TYPE:
-            
+            //printf("int\n");
             //printf("%i\n", tree->i);
             return tree;
             break;
         case BOOL_TYPE: 
+            //printf("bool\n");
             //printf("%i\n", tree->b);
            return tree;
            break;
          case SYMBOL_TYPE:
-         
+            //printf("we in here\n");
             return lookUpSymbol(tree, frame);
             break;
          case STR_TYPE:
@@ -386,8 +373,11 @@ Value *eval(Value *tree, Frame *frame) {
                 // printf(car((*result).cl.paramNames));
 
             } else {
-              //  if (evaledOperator->type == CLOSURE_TYPE) {
+              
                 Value *evaledOperator = eval(first, frame);
+                if (evaledOperator->type == CLOSURE_TYPE) {
+                    printf("ITS A CLOSURE\n");
+                }        
 //                displayTokens((*evaledOperator).cl.paramNames);
 //                printf("------------ \n");
 //                displayTokens((*evaledOperator).cl.functionCode);
@@ -409,6 +399,7 @@ Value *eval(Value *tree, Frame *frame) {
 
 void interpret(Value *tree) {
 
+    printInterpreter(tree);
     topFrame = makeFrame(NULL);
     //tree = car(tree);
     Value *results;
