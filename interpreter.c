@@ -1,5 +1,5 @@
 /*
-created by dillon lanier, Tony Ngo, Matt Stritzel 11-5-2019 for programming languages with dave musicant
+created by Dillon Lanier, Tony Ngo, Matt Stritzel 11-5-2019 for programming languages with dave musicant
 */
 
 #include "tokenizer.h"
@@ -41,7 +41,11 @@ void printInterpreterHelper(Value *tree, Value *prev, int empty) {
     switch((*tree).type) {
         case BOOL_TYPE:
             printSpace(prev);
-            printf("%i", (*tree).i);
+            if(tree->i == 1){
+                printf("#t");
+            } else{
+                printf("#f");
+            }
             (*prev).type = BOOL_TYPE;
             break;
         case SYMBOL_TYPE:
@@ -50,7 +54,6 @@ void printInterpreterHelper(Value *tree, Value *prev, int empty) {
             (*prev).type = SYMBOL_TYPE;
             break;
         case INT_TYPE:
-            
             printSpace(prev);
             printf("%i", (*tree).i);
             (*prev).type = INT_TYPE;
@@ -62,7 +65,7 @@ void printInterpreterHelper(Value *tree, Value *prev, int empty) {
             break;
         case STR_TYPE:
             printSpace(prev);
-            printf("%s", (*tree).s);
+            printf("\"%s\"", (*tree).s);
             (*prev).type = STR_TYPE;
             break;
         case PTR_TYPE:
@@ -101,7 +104,6 @@ This function displays a parse tree to the screen.
 feeds the tree, the previously printed thing, and a bool to a helper method
  */
 void printInterpreter(Value *tree) {
-
     Value *prev = makeNull();
     printInterpreterHelper(tree, prev, 1);
 }
@@ -118,6 +120,18 @@ Value *makeClosure(Value *args, Frame *frame){
     Value *value = talloc(sizeof(Value));
     value->type = CLOSURE_TYPE;
     (*value).cl.paramNames = car(args);
+    Value *tempParam =  (*value).cl.paramNames;
+    while(tempParam->type != NULL_TYPE){
+        if(car(tempParam)->type != SYMBOL_TYPE){
+            printf("error: param is not a symbol\n");
+            texit(1);
+        }
+        else{
+            tempParam = cdr(tempParam);
+        }
+    }
+    if((*value).cl.paramNames->type != SYMBOL_TYPE)
+
     (*value).cl.functionCode = car(cdr(args));
     (*value).cl.frame = frame;
     return value;
@@ -131,7 +145,22 @@ Value *evalDefine(Value *args, Frame *frame) {
     //using topFrame which is global frame
     //name of the defined thing
     Value *variable = car(args);
+    if(variable->type != SYMBOL_TYPE){
+        printf("error: variable is not a symbol\n");
+            texit(1);
+    }
+
     Value *voidValue = makeVoidValue();
+    //check to make sure num params = num of variables used
+    if(cdr(args)->type == NULL_TYPE){
+        printf("evaluation error: reference without definition\n");
+        texit(1);
+    }
+    if(cdr(cdr(args))->type != NULL_TYPE){
+        printf("evaluation error: length of arguements for define is longer than 2\n");
+        texit(1);
+    }
+
 
     //expression is the thing the name variable points to
     Value *expression = eval(car(cdr(args)), topFrame);
@@ -163,8 +192,17 @@ Value *apply(Value *function, Value *args) {
     // Go through all the actual argument value
     while(args->type != NULL_TYPE){
         frame->bindings = cons(cons(car(params), car(args)), frame->bindings);
+
         args = cdr(args);
         params = cdr(params);
+        if(args->type != NULL_TYPE && params->type == NULL_TYPE){
+            printf("error: more arguements passed than number of params\n");
+            texit(1);
+        }
+        if(args->type == NULL_TYPE && params->type != NULL_TYPE){
+            printf("error: number of arguements passed is less than number of parameters needed\n");
+            texit(1);
+        }
     }
     //printInterpreter(frame->bindings);
     //frame->bindings = new_bindings;    
@@ -175,7 +213,9 @@ Value *apply(Value *function, Value *args) {
 Value *evalEach(Value *args, Frame *frame) {
     
     Value *returnList = makeNull();
-    if (cdr(args)->type == NULL_TYPE) {
+    if(args->type == NULL_TYPE){
+        return args;
+    } else if (cdr(args)->type == NULL_TYPE) {
         return cons(eval(car(args), frame), returnList);
     } else {
         while (args->type != NULL_TYPE){
@@ -256,11 +296,6 @@ Value *evalLet(Value *args, Frame *frame) {
             eval(car(expressions), subFrame);
             expressions = cdr(expressions);
         }
-        // printf("ABOUT TO PRINT BINDINGS\n");
-        // printf("EXPRESSIONS: %s\n", expressions->s);
-        // printInterpreter(expressions);
-        // printInterpreter(subFrame->bindings);
-        // printf("\n");
         return eval(car(expressions),subFrame);
     }      
 
@@ -326,19 +361,13 @@ Value *eval(Value *tree, Frame *frame) {
                 result = evalLambda(args, frame);
             } else {
               
-                Value *evaledOperator = eval(first, frame);
-                // if (evaledOperator->type == CLOSURE_TYPE) {
-                //     printf("ITS A CLOSURE\n");
-                // }        
+                Value *evaledOperator = eval(first, frame);       
                 Value *evaledArgs = evalEach(args, frame);
-                return apply(evaledOperator,evaledArgs); // should return 5 (4 + 1)
+                return apply(evaledOperator,evaledArgs); 
             }
             break;
         }
         default:
-        
-            //printf("ERROR: type not accounted for by switch case!\n");
-            //printf("%s\n", tree->symbol);
             return tree;
     }
     return result;
@@ -347,18 +376,16 @@ Value *eval(Value *tree, Frame *frame) {
 
 void interpret(Value *tree) {
 
-    //printInterpreter(tree);
     topFrame = makeFrame(NULL);
     Value *results;
-
-    printf("\n---------OUTPUT---------------\n");
     while(tree->type != NULL_TYPE){
         results = eval(car(tree), topFrame);
         printInterpreter(results);
-        printf("\n");
+        if(results->type != VOID_TYPE){
+            printf("\n");
+        }   
         tree = cdr(tree);
     }
-    printf("\n\n");
 }
 
 
