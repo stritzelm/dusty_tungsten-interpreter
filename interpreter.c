@@ -314,6 +314,7 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
             currBinding = car(nextBinding);
             if(!strcmp(tree->s, car(currBinding)->s)){
                 //printInterpreter(cdr(currBinding));
+                printf("FOUND + IN BINDINGS\n");
                 return cdr(currBinding);
             }
             nextBinding = cdr(nextBinding);
@@ -329,6 +330,7 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
 
 
 Value *eval(Value *tree, Frame *frame) {
+    printf("IN EVAL\n");
 
     Value *result = makeNull();
     switch (tree->type) {
@@ -339,6 +341,7 @@ Value *eval(Value *tree, Frame *frame) {
            return tree;
            break;
          case SYMBOL_TYPE:
+            printf("IN SYMBOL CASE LOOKING FOR +\n");
             return lookUpSymbol(tree, frame);
             break;
          case STR_TYPE:
@@ -374,9 +377,52 @@ Value *eval(Value *tree, Frame *frame) {
 }
 
 
+Value *primitiveAdd(Value *args) {
+
+    printInterpreter(args);
+    printf("args for primitiveAdd\n----------------\n");
+    int result = 0;
+    //result->type = INT_TYPE;
+    while (args->type != NULL_TYPE) {
+        //return result;
+        if (car(args)->type != INT_TYPE && car(args)->type != DOUBLE_TYPE){
+            //throw an error not a number
+            break;
+
+        } else {
+            result += car(args)->i;
+        }
+        args = cdr(args);
+    }
+   // check that args has length one and car(args) is numerical
+   //return makeFloatValue(exp(floatval(car(args)))); 
+    Value *returnResult;
+    returnResult->i = result;
+    returnResult->type = INT_TYPE;
+    return returnResult;
+}
+
+
+
+void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
+    // Add primitive functions to top-level bindings list
+    Value *value = talloc(sizeof(Value));
+    value->type = PRIMITIVE_TYPE;
+    value->pf = function;
+    //evalLambda()
+    Value *tempBinding = cons(name, value);
+    topFrame->bindings = cons(tempBinding, topFrame->bindings);
+
+}
+
 void interpret(Value *tree) {
 
     topFrame = makeFrame(NULL);
+
+    //ADD BINDINGS TO PRIMITIVES
+    bind("+", primitiveAdd, topFrame);
+    //ADD BINDINGS TO PRIMITIVES
+    
     Value *results;
     while(tree->type != NULL_TYPE){
         results = eval(car(tree), topFrame);

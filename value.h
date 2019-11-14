@@ -9,7 +9,7 @@ typedef enum {
     OPENBRACKET_TYPE, CLOSEBRACKET_TYPE, DOT_TYPE, SINGLEQUOTE_TYPE,
 
     // Types below are new for define/lambda portion
-    VOID_TYPE, CLOSURE_TYPE
+    VOID_TYPE, CLOSURE_TYPE, PRIMITIVE_TYPE
 } valueType;
 
 struct Value {
@@ -33,6 +33,8 @@ struct Value {
             struct Value *functionCode;
             struct Frame *frame;
         } cl;
+        struct Value *(*pf)(struct Value *);
+
     };
 };
 
