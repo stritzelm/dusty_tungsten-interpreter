@@ -402,6 +402,58 @@ Value *eval(Value *tree, Frame *frame) {
 }
 
 
+Value *primitiveCar(Value *value){
+    // Error Checking
+    if (value->type != CONS_TYPE){
+        printf("Syntax Error: invalid input.\n");
+        texit(1);
+    }
+    if (cdr(value)->type!= NULL_TYPE){
+        printf("Syntax Error: Expect only one argument.\n");
+        texit(1);
+    }
+    
+    Value *result = car(car(value));
+    return result;
+}
+
+Value *primitiveCdr(Value *value) {
+    
+    if (value->type != CONS_TYPE){
+        printf("Syntax Error: Invalid input -- needs to be cons.\n");
+        texit(1);
+    }
+    if (cdr(value)->type!= NULL_TYPE){
+        printf("Syntax Error: Expect only one argument.\n");
+        texit(1);
+    }
+    Value *result = cdr(car(value));
+    return result;
+}
+
+
+
+Value *primitiveCons(Value *value) {
+    
+    // Error Checking
+    if (value->type != CONS_TYPE){
+        printf("Syntax Error: \"cons\" statement expect a CONS_TYPE argument.\n");
+        texit(1);
+    }
+    if (cdr(value)->type == NULL_TYPE || cdr(cdr(value))->type!= NULL_TYPE){
+        printf("Syntax Error: Expect only two arguments \n");
+        texit(1);
+    }
+    
+    Value *firstCons = car(value);
+    Value *secondCons = cdr(value);
+    if (secondCons->type == CONS_TYPE){
+        secondCons = car(secondCons);
+    }
+    return cons(firstCons,secondCons);
+}
+
+
 Value *primitiveAdd(Value *args) {
     
     printInterpreter(args);
@@ -455,9 +507,9 @@ void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
 void bindPrimitives(Frame *frame){
     bind("+", primitiveAdd, frame);
    // bind("null?", primitiveNull, frame);
-   // bind("car", primitiveCar, frame);
-    //bind("cdr", primitiveCdr, frame);
-   // bind("cons", primitiveCons, frame);
+    bind("car", primitiveCar, frame);
+    bind("cdr", primitiveCdr, frame);
+    bind("cons", primitiveCons, frame);
 }
 
 
