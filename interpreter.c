@@ -74,7 +74,7 @@ void printInterpreterHelper(Value *tree, Value *prev, int empty) {
             (*prev).type = PTR_TYPE;
             break;
         case PRIMITIVE_TYPE:
-            printf("ITS A PRIMITIVE_TYPE\n");
+            //printf("ITS A PRIMITIVE_TYPE\n");
         case CONS_TYPE:
             if (car(tree)->type == CONS_TYPE) {
                 printSpace(prev);
@@ -327,23 +327,22 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
             //printf("IN lookUpSymbol%s\n", car(currBinding)->s);
             if(!strcmp(tree->s, car(currBinding)->s)){
                 //printInterpreter(cdr(currBinding));
-                //printf("FOUND + IN BINDINGS\n");
+                //printf("FOUND IN %s\n", tree->s);
                 return cdr(currBinding);
             }
             nextBinding = cdr(nextBinding);
         }
         currFrame = currFrame->parent;
     }
+    //printf("can not find %s\n",tree->s );
     printf("ERROR: variable is not bound to anything\n");
-    //printf("%s\n", tree->s);
-    //printInterpreter(frame->bindings);
     texit(1);
     return NULL;
 }
 
 
 Value *eval(Value *tree, Frame *frame) {
-    printf("IN EVAL\n");
+    //printf("IN EVAL\n");
 
     Value *result = makeNull();
     switch (tree->type) {
@@ -376,23 +375,22 @@ Value *eval(Value *tree, Frame *frame) {
                 result = evalDefine(args, frame);
             } else if (!strcmp(first->s, "lambda")){
                 result = evalLambda(args, frame);
-            } else {
-              
+            } else {  
                 Value *evaledOperator = eval(first, frame);    
                 Value *evaledArgs = evalEach(args, frame);
                 //printf("%i\n", car(args)->i);
-                printf("evaled args: %i\n", car(evaledArgs)->i);
+                //printf("evaled args: %i\n", car(evaledArgs)->i);
                 if (evaledArgs->type == NULL_TYPE) {
-                    printf("in here\n");
+                    //printf("in here\n");
                     return first;
                 }
                 if (evaledOperator->type == PRIMITIVE_TYPE) {
-                    printf("evaled op is primitive\n");
+                    //printf("evaled op is primitive\n");
                     return applyPrimitive(evaledOperator->pf, evaledArgs);
                     //do a special apply?
                 } else if (evaledOperator->type == CLOSURE_TYPE){
-                    printf("evaled op is CLOSEURE TYPE\n");
-                    printf("about to appy\n");
+                    //printf("evaled op is CLOSEURE TYPE\n");
+                    //printf("about to appy\n");
                     return apply(evaledOperator,evaledArgs); 
                 } else {
                     printf("ERROR, method not defined\n");
@@ -410,6 +408,7 @@ Value *eval(Value *tree, Frame *frame) {
 Value *primitiveCar(Value *value){
     // Error Checking
     if (value->type != CONS_TYPE){
+        //error because need cons
         printf("Syntax Error: invalid input.\n");
         texit(1);
     }
@@ -417,21 +416,43 @@ Value *primitiveCar(Value *value){
         printf("Syntax Error: Expect only one argument.\n");
         texit(1);
     }
-    
-    Value *result = car(car(value));
+    Value *result = car(car(car(value)));
     return result;
+}
+
+Value *primitiveCdr(Value *value){
+    Value *result;
+    Value *temp = makeNull();
+    //check if value is cons type first
+    if (value->type != CONS_TYPE){
+        printf("Syntax Error: invalid input, expected CONS_TYPE.\n");
+        texit(1);
+    }
+    //make sure only 1 arg
+    if (cdr(value)->type!= NULL_TYPE){
+        printf("Syntax Error: Expect only one argument.\n");
+        texit(1);
+    }
+
+    if (car(value)->type == NULL_TYPE){
+        printf("Syntax Error: expected pair.\n");
+        texit(1);
+    }
+    result = cdr(car(car(value)));
+    return cons(result, temp);
+
 }
 
 
 Value *primitiveAdd(Value *args) {
-
+    printf("hit\n");
     //printInterpreter(args);
     int result = 0;
     //result->type = INT_TYPE;
     while (args->type != NULL_TYPE) {
         
         Value *number = car(args);
-        printf("IN PRIMITIVE ADD\n");
+        //printf("IN PRIMITIVE ADD\n");
         if (car(args)->type == INT_TYPE) {
             printf("its an int type\n");
         }
@@ -445,18 +466,16 @@ Value *primitiveAdd(Value *args) {
         if (number->type == INT_TYPE){
             result += number->i;
         } else {
-            
-            printf("HEREEE\n");
             result += number->d;
         }
         args = cdr(args);
     }
-   // check that args has length one and car(args) is numerical
-   //return makeFloatValue(exp(floatval(car(args)))); 
+    // check that args has length one and car(args) is numerical
+    //return makeFloatValue(exp(floatval(car(args)))); 
     Value *returnResult = makeNull();
     returnResult->i = result;
     returnResult->type = INT_TYPE;
-    printf("got to the end of primitive add\n");
+    //printf("got to the end of primitive add\n");
     return returnResult;
 }
 
@@ -467,6 +486,7 @@ Value *primitiveCons(Value *value) {
         printf("Syntax Error: \"cons\" statement expect a CONS_TYPE argument.\n");
         texit(1);
     }
+    //Check make sure there are only 2 arguements
     if (cdr(value)->type == NULL_TYPE || cdr(cdr(value))->type!= NULL_TYPE){
         printf("Syntax Error: Expect only two arguments \n");
         texit(1);
@@ -474,10 +494,36 @@ Value *primitiveCons(Value *value) {
     
     Value *firstCons = car(value);
     Value *secondCons = cdr(value);
+    //if second cons is a cons type that means it is a proper list
     if (secondCons->type == CONS_TYPE){
+        //return cons(firstCons, secondCons);
         secondCons = car(secondCons);
     }
+    printf("hit\n");
+    //else need to return improper list
     return cons(firstCons,secondCons);
+}
+
+//return value type bool or just bool
+Value *primitiveNull(Value *value){
+    Value *result = makeNull();
+    result->type = BOOL_TYPE;
+
+    if(value->type == CONS_TYPE && cdr(value)->type!= NULL_TYPE){
+        //error because more than 1 arguement
+        printf("Syntax Error: Expect only one argument.\n");
+        texit(1);
+    }
+    //return value;
+
+    if (car(car(value))->type == NULL_TYPE){    
+        result->i = 1;
+        return result;
+    }
+    else{
+        result->i = 0;
+        return result;
+    }
 }
 
 
@@ -500,10 +546,10 @@ void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
 
 void bindPrimitives(Frame *frame){
     bind("+", primitiveAdd, frame);
-    // bind("null?", primitiveNull, frame);
+    bind("null?", primitiveNull, frame);
     bind("car", primitiveCar, frame);
-    //    bind("cdr", primitiveCdr, frame);
-    //    bind("cons", primitiveCons, frame);
+    bind("cdr", primitiveCdr, frame);
+    bind("cons", primitiveCons, frame);
 }
 
 void interpret(Value *tree) {
