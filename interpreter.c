@@ -447,7 +447,7 @@ Value *primitiveCdr(Value *value){
 Value *primitiveAdd(Value *args) {
     printf("hit\n");
     //printInterpreter(args);
-    int result = 0;
+    double result = 0;
     //result->type = INT_TYPE;
     while (args->type != NULL_TYPE) {
         
@@ -464,7 +464,8 @@ Value *primitiveAdd(Value *args) {
         }
         
         if (number->type == INT_TYPE){
-            result += number->i;
+            result += (float)number->i;
+
         } else {
             result += number->d;
         }
@@ -473,8 +474,8 @@ Value *primitiveAdd(Value *args) {
     // check that args has length one and car(args) is numerical
     //return makeFloatValue(exp(floatval(car(args)))); 
     Value *returnResult = makeNull();
-    returnResult->i = result;
-    returnResult->type = INT_TYPE;
+    returnResult->d = result;
+    returnResult->type = DOUBLE_TYPE;
     //printf("got to the end of primitive add\n");
     return returnResult;
 }
@@ -500,17 +501,22 @@ Value *primitiveCons(Value *value) {
      
     //if second cons is a cons type that means it is a proper list
     if (secondCons->type == CONS_TYPE){
-        secondResult = car(car(secondCons));
-         while(cdr(car(secondCons))->type != NULL_TYPE){
+        if(car(secondCons)->type == CONS_TYPE){
+            secondResult = car(car(secondCons));
+            
+            while(cdr(car(secondCons))->type != NULL_TYPE){
             secondResult = cons(car(cdr(car(secondCons))), secondResult);
+            secondCons = cdr(secondCons);
+            }
         }
-        secondCons = cdr(secondCons);
+        else{
+            secondResult = secondCons;
+        }
     } 
-
     if (firstCons->type == CONS_TYPE){
-        return cons(firstCons, secondResult);
+        return cons(cons(car(firstCons), secondResult) , end);
     }
-
+    //secondResult = car(secondCons);
     //else need to return improper list
     return cons(cons(firstCons,secondResult), end);
 }
