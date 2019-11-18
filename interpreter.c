@@ -225,7 +225,6 @@ Value *evalEach(Value *args, Frame *frame) {
     
     Value *returnList = makeNull();
     if(args->type == NULL_TYPE){
-        printf("NULL TYPE\n");
         return args;
     } else if (cdr(args)->type == NULL_TYPE) {
         return cons(eval(car(args), frame), returnList);
@@ -500,7 +499,7 @@ Value *primitiveCons(Value *value) {
         texit(1);
     }
     //Check make sure there are only 2 arguements
-    if (cdr(value)->type == NULL_TYPE || cdr(cdr(value))->type!= NULL_TYPE){
+    if (cdr(value)->type == NULL_TYPE || cdr(cdr(value))->type != NULL_TYPE){
         printf("Syntax Error: Expect only two arguments \n");
         texit(1);
     }
@@ -515,9 +514,7 @@ Value *primitiveCons(Value *value) {
     if (firstCons->type == CONS_TYPE){
         firstCons = car(firstCons);   
     } 
-    // else{
-
-    // }
+    
     //check if second arg is cons
     if (secondCons->type == CONS_TYPE){
 
@@ -533,9 +530,10 @@ Value *primitiveCons(Value *value) {
             return cons(cons(firstCons, car(secondCons)), end);
         }
     } 
-    //secondResult = car(secondCons);
-    //else need to return improper list
-    //return cons(cons(firstCons,secondResult), end);
+    printf("errpr: cons error\n");
+    texit(1);
+    return NULL;
+
 }
 
 //return value type bool or just bool
