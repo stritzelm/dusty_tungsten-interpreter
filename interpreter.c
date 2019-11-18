@@ -85,6 +85,9 @@ void printInterpreterHelper(Value *tree, Value *prev, int empty) {
             if (car(tree)->type == CONS_TYPE) {
                 printf(")");
             }
+            if(car(tree)->type != CONS_TYPE && cdr(tree)->type != NULL_TYPE){
+                printf(".");
+            }
             printInterpreterHelper(cdr(tree), prev, 0);  
             break;
         case NULL_TYPE:
@@ -503,7 +506,7 @@ Value *primitiveCons(Value *value) {
     if (secondCons->type == CONS_TYPE){
         if(car(secondCons)->type == CONS_TYPE){
             secondResult = car(car(secondCons));
-            
+
             while(cdr(car(secondCons))->type != NULL_TYPE){
             secondResult = cons(car(cdr(car(secondCons))), secondResult);
             secondCons = cdr(secondCons);
@@ -542,9 +545,6 @@ Value *primitiveNull(Value *value){
         return result;
     }
 }
-
-
-
 
 void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
     // Add primitive functions to top-level bindings list
