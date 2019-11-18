@@ -494,14 +494,25 @@ Value *primitiveCons(Value *value) {
     
     Value *firstCons = car(value);
     Value *secondCons = cdr(value);
+    Value *end = makeNull();
+    Value *firstResult;
+    Value *secondResult;
+     
     //if second cons is a cons type that means it is a proper list
     if (secondCons->type == CONS_TYPE){
-        //return cons(firstCons, secondCons);
-        secondCons = car(secondCons);
+        secondResult = car(car(secondCons));
+         while(cdr(car(secondCons))->type != NULL_TYPE){
+            secondResult = cons(car(cdr(car(secondCons))), secondResult);
+        }
+        secondCons = cdr(secondCons);
+    } 
+
+    if (firstCons->type == CONS_TYPE){
+        return cons(firstCons, secondResult);
     }
-    printf("hit\n");
+
     //else need to return improper list
-    return cons(firstCons,secondCons);
+    return cons(cons(firstCons,secondResult), end);
 }
 
 //return value type bool or just bool
