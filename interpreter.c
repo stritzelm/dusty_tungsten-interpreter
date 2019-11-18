@@ -85,8 +85,8 @@ void printInterpreterHelper(Value *tree, Value *prev, int empty) {
             if (car(tree)->type == CONS_TYPE) {
                 printf(")");
             }
-            if(car(tree)->type != CONS_TYPE && cdr(tree)->type != NULL_TYPE){
-                printf(".");
+            if(cdr(tree)->type != CONS_TYPE && cdr(tree)->type != NULL_TYPE){
+                printf(" .");
             }
             printInterpreterHelper(cdr(tree), prev, 0);  
             break;
@@ -357,7 +357,7 @@ Value *eval(Value *tree, Frame *frame) {
            break;
          case SYMBOL_TYPE:
             //printf("IN SYMBOL CASE LOOKING FOR +\n");
-            printf("%s\n", tree->s);
+            //printf("%s\n", tree->s);
             return lookUpSymbol(tree, frame);
             break;
          case STR_TYPE:
@@ -448,7 +448,7 @@ Value *primitiveCdr(Value *value){
 
 
 Value *primitiveAdd(Value *args) {
-    printf("hit\n");
+    
     //printInterpreter(args);
     double result = 0;
     //result->type = INT_TYPE;
@@ -457,7 +457,6 @@ Value *primitiveAdd(Value *args) {
         Value *number = car(args);
         //printf("IN PRIMITIVE ADD\n");
         if (car(args)->type == INT_TYPE) {
-            printf("its an int type\n");
         }
 
         if (number->type != INT_TYPE &&
@@ -476,11 +475,21 @@ Value *primitiveAdd(Value *args) {
     }
     // check that args has length one and car(args) is numerical
     //return makeFloatValue(exp(floatval(car(args)))); 
-    Value *returnResult = makeNull();
-    returnResult->d = result;
-    returnResult->type = DOUBLE_TYPE;
-    //printf("got to the end of primitive add\n");
-    return returnResult;
+    int intResult = (int) result;
+    if (intResult == result) {
+        Value *returnResult = makeNull();
+        returnResult->i = (int) result;
+        returnResult->type = INT_TYPE;
+        //printf("got to the end of primitive add\n");
+        return returnResult;
+    } else {
+        Value *returnResult = makeNull();
+        returnResult->d = result;
+        returnResult->type = DOUBLE_TYPE;
+        //printf("got to the end of primitive add\n");
+        return returnResult;
+    }
+
 }
 
 Value *primitiveCons(Value *value) {
@@ -501,27 +510,32 @@ Value *primitiveCons(Value *value) {
     Value *end = makeNull();
     Value *firstResult;
     Value *secondResult;
-     
-    //if second cons is a cons type that means it is a proper list
+
+    //check of first arg is cons
+    if (firstCons->type == CONS_TYPE){
+        firstCons = car(firstCons);   
+    } 
+    // else{
+
+    // }
+    //check if second arg is cons
     if (secondCons->type == CONS_TYPE){
+
         if(car(secondCons)->type == CONS_TYPE){
             secondResult = car(car(secondCons));
-
             while(cdr(car(secondCons))->type != NULL_TYPE){
             secondResult = cons(car(cdr(car(secondCons))), secondResult);
             secondCons = cdr(secondCons);
             }
+            return cons(cons((firstCons), secondResult) , end);
         }
         else{
-            secondResult = secondCons;
+            return cons(cons(firstCons, car(secondCons)), end);
         }
     } 
-    if (firstCons->type == CONS_TYPE){
-        return cons(cons(car(firstCons), secondResult) , end);
-    }
     //secondResult = car(secondCons);
     //else need to return improper list
-    return cons(cons(firstCons,secondResult), end);
+    //return cons(cons(firstCons,secondResult), end);
 }
 
 //return value type bool or just bool
