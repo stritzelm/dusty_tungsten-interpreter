@@ -323,6 +323,55 @@ Value *evalLet(Value *args, Frame *frame) {
     }
 }
 
+
+/* Evaluates the predicate expressions of successive clauses in order, until one of the predicates evaluates to a true value.
+ *
+ * When a predicate evaluates to a true value, cond evaluates the expressions in the associated clause in left to right order,
+ * and returns the result of evaluating the last expression in the clause as the result of the entire cond expression.
+ *
+ * If the selected clause contains only the predicate and no expressions, cond returns the value of the predicate as the result.
+ * If all predicates evaluate to false values, and there is no else clause, the result of the conditional expression is
+ * unspecified; if there is an else clause, cond evaluates its expressions (left to right) and returns the value of the last one.
+ 
+*/
+Value *evalCond(Value *args, Frame *frame) {
+
+    Value *current = args;
+    while (current->type != NULL_TYPE) {
+    
+        
+        Value *currExpression = car(current);
+       
+        Value *predicate = car(currExpression);
+        Value *expr = cdr(currExpression);
+        
+        
+        
+        if (predicate->type == SYMBOL_TYPE &&
+            !strcmp(predicate->s, "else")) {
+            return eval(car(expr), frame);
+        }
+        
+        // Evaluate the condition if this is not the else case.
+        predicate = eval(predicate, frame);
+                
+        if (predicate->type != BOOL_TYPE) {
+            printf("Error: Predicate should evaluate to a BOOL_TYPE \n");
+            texit(1);
+        }
+        if (predicate->i == 1) {
+            return eval(car(expr), frame);
+        }
+        current = cdr(current);
+    }
+    
+    //Value *result = makeNull();
+    
+}
+
+
+
+
 /*
  * Take a SYMBOL_TYPE Value and look it up in the stack of frames. Start with one
  * you're in, then go up the chain of parents
@@ -382,7 +431,9 @@ Value *eval(Value *tree, Frame *frame) {
                 result = evalDefine(args, frame);
             } else if (!strcmp(first->s, "lambda")){
                 result = evalLambda(args, frame);
-            } else {  //It's a Primitive or closure type!
+            } else if (!strcmp(first->s, "cond")) {
+                 result = evalCond(args, frame);
+            }   else {  //It's a Primitive or closure type!
                 Value *evaledOperator = eval(first, frame);
                 Value *evaledArgs = evalEach(args, frame);
                 if (evaledArgs->type == NULL_TYPE) {
@@ -786,6 +837,7 @@ Value *primitiveEq(Value *args){
     }
     return returnResult;
 }
+
 
 
 /*
