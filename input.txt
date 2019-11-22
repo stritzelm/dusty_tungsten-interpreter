@@ -1,1 +1,12 @@
-(let ((x 3)) 2 4 x)
+(let ((x (lambda (y) (+ y 5)))) (x 9))
+
+(+)
+(+ 1.1)
+(+ 1)
+(+ 1.2 9)
+(+ 5 6 7 0)
+
+(cons 5 (quote(3 4 6)))
+(cons (quote(3 4 6)) 5)
+(cons (quote(2 3)) (quote(3)))
+(cons 6 3)
