@@ -1,7 +1,7 @@
 /*
-created by Dillon Lanier, Tony Ngo, Matt Stritzel 11-24-2019 for programming languages with dave musicant.
-Interprets the programming language sceme using C. (takes scheme input and runs it with C)
-*/
+ created by Dillon Lanier, Tony Ngo, Matt Stritzel 11-24-2019 for programming languages with dave musicant.
+ Interprets the programming language sceme using C. (takes scheme input and runs it with C)
+ */
 
 #include "tokenizer.h"
 #include "value.h"
@@ -18,8 +18,8 @@ Interprets the programming language sceme using C. (takes scheme input and runs 
 Frame *topFrame;
 
 /*
-helper method that prints a space for output formatting
-*/
+ helper method that prints a space for output formatting
+ */
 void printSpace(Value *prev) {
     if ((*prev).type != NULL_TYPE && (*prev).type != OPEN_TYPE) {
         printf(" ");
@@ -27,10 +27,10 @@ void printSpace(Value *prev) {
 }
 
 /*
-Helper function for displaying a parse tree to the screen.
-*/
+ Helper function for displaying a parse tree to the screen.
+ */
 void printInterpreterHelper(Value *tree, Value *prev, int empty) {
-
+    
     switch((*tree).type) {
         case BOOL_TYPE:
             printSpace(prev);
@@ -81,7 +81,7 @@ void printInterpreterHelper(Value *tree, Value *prev, int empty) {
             if(cdr(tree)->type != CONS_TYPE && cdr(tree)->type != NULL_TYPE){
                 printf(" .");
             }
-            printInterpreterHelper(cdr(tree), prev, 0);  
+            printInterpreterHelper(cdr(tree), prev, 0);
             break;
         case NULL_TYPE:
             if (empty == 1) {
@@ -93,12 +93,12 @@ void printInterpreterHelper(Value *tree, Value *prev, int empty) {
             break;
         default:
             printf("ERROR: Unaccounted for type\n");
-    }   
+    }
 }
 
 /*
-This function displays a parse tree to the screen.
-feeds the tree, the previously printed thing, and a bool to a helper method
+ This function displays a parse tree to the screen.
+ feeds the tree, the previously printed thing, and a bool to a helper method
  */
 void printInterpreter(Value *tree) {
     Value *prev = makeNull();
@@ -106,8 +106,8 @@ void printInterpreter(Value *tree) {
 }
 
 /*
-* Creates a VOID_TYPE value and returns a pointer to it
-*/
+ * Creates a VOID_TYPE value and returns a pointer to it
+ */
 Value *makeVoidValue() {
     Value *voidValue = makeNull();
     voidValue->type = VOID_TYPE;
@@ -115,8 +115,8 @@ Value *makeVoidValue() {
 }
 
 /*
-* Make an empty frame with given frame as its parent
-*/
+ * Make an empty frame with given frame as its parent
+ */
 Frame *makeFrame(Frame *parent) {
     Frame *frame = talloc(sizeof(Frame));
     (*frame).bindings = makeNull();
@@ -125,9 +125,9 @@ Frame *makeFrame(Frame *parent) {
 }
 
 /*
-* Make a closure (param names, parent frame, function code )
-* returns an object w Value type equal to CLOSURE_TYPE
-*/
+ * Make a closure (param names, parent frame, function code )
+ * returns an object w Value type equal to CLOSURE_TYPE
+ */
 Value *makeClosure(Value *args, Frame *frame){
     Value *value = talloc(sizeof(Value));
     value->type = CLOSURE_TYPE;
@@ -143,31 +143,31 @@ Value *makeClosure(Value *args, Frame *frame){
         }
     }
     if((*value).cl.paramNames->type != SYMBOL_TYPE)
-
-    (*value).cl.functionCode = car(cdr(args));
+        
+        (*value).cl.functionCode = car(cdr(args));
     (*value).cl.frame = frame;
     return value;
 }
 
 /*
-* Lambda creates a closure when seen, calls makeClosure()
-*/
+ * Lambda creates a closure when seen, calls makeClosure()
+ */
 Value *evalLambda(Value *args, Frame *frame) {
     Value *closure = makeClosure(args, frame);
     return closure;
 }
 
 /*
-* Creates a new binding of var to the value of expr
-* Modifies current environment frame
-* Need to have a top or global frame, contains binding of variables created using define
-*/
+ * Creates a new binding of var to the value of expr
+ * Modifies current environment frame
+ * Need to have a top or global frame, contains binding of variables created using define
+ */
 Value *evalDefine(Value *args, Frame *frame) {
     //using topFrame which is global frame
     Value *variable = car(args);
     if(variable->type != SYMBOL_TYPE){
         printf("error: variable is not a symbol\n");
-            texit(1);
+        texit(1);
     }
     Value *voidValue = makeVoidValue();
     //check to make sure num params = num of variables used
@@ -183,25 +183,25 @@ Value *evalDefine(Value *args, Frame *frame) {
     Value *expression = eval(car(cdr(args)), topFrame);
     Value *tempBinding = cons(variable, expression); //creates binding of variable and expression
     topFrame->bindings = cons(tempBinding, topFrame->bindings); //add binding to global frame
-
+    
     return voidValue;
-}   
+}
 
 /* Apply creates a frame,
-* parent is frame pointed to by environment
-* create local variables (bindings to match the parameters)
-* it executes (evals) the body of the closure
-*/
+ * parent is frame pointed to by environment
+ * create local variables (bindings to match the parameters)
+ * it executes (evals) the body of the closure
+ */
 Value *apply(Value *function, Value *args) {
     
     Frame *frame = makeFrame(function->cl.frame);
     Value *params = function->cl.paramNames;
     Value *body = (*function).cl.functionCode;
-
+    
     // Go through all the actual argument value
     while(args->type != NULL_TYPE){
         frame->bindings = cons(cons(car(params), car(args)), frame->bindings);
-
+        
         args = cdr(args);
         params = cdr(params);
         if(args->type != NULL_TYPE && params->type == NULL_TYPE){
@@ -213,22 +213,22 @@ Value *apply(Value *function, Value *args) {
             texit(1);
         }
     }
-
+    
     return eval(body, frame);
 }
 
 /*
-* If it's a primitive function, it has type PRIMITIVE_TYPE, and is "applied"
-* differently than a CLOSURE_TYPE Value. Simply run corresponding C code for primitive 
-* passing the args
-*/
+ * If it's a primitive function, it has type PRIMITIVE_TYPE, and is "applied"
+ * differently than a CLOSURE_TYPE Value. Simply run corresponding C code for primitive
+ * passing the args
+ */
 Value *applyPrimitive(Value *(*function)(struct Value *), Value *args) {
     return (*function)(args);
 }
 
 /*
-* Used to evaluate a Linked List easily, want to eval args before applying. 
-*/
+ * Used to evaluate a Linked List easily, want to eval args before applying.
+ */
 Value *evalEach(Value *args, Frame *frame) {
     Value *returnList = makeNull();
     if(args->type == NULL_TYPE){
@@ -246,8 +246,8 @@ Value *evalEach(Value *args, Frame *frame) {
 }
 
 /*
-* Evaluate an if expression, going to return based on whether first arg is true or false. 
-*/
+ * Evaluate an if expression, going to return based on whether first arg is true or false.
+ */
 Value *evalIf(Value *args, Frame *frame) {
     Value *test = eval(car(args), frame);
     Value *expressions = cdr(args);
@@ -261,25 +261,25 @@ Value *evalIf(Value *args, Frame *frame) {
         printf("evaluation error: condition is not a boolean\n");
         texit(1);
         return NULL;
-    }  
+    }
 }
 
-/* 
-* Just want to return same stuff without the quote in front.
-*/
+/*
+ * Just want to return same stuff without the quote in front.
+ */
 Value *evalQuote(Value *args) {
     return args;
 }
 
 /*
-* Evaluate a Let expression, create a new frame, and add to its bindings
-* Then once done with creating bindings, eval the rest of the code in that frame
-*/
+ * Evaluate a Let expression, create a new frame, and add to its bindings
+ * Then once done with creating bindings, eval the rest of the code in that frame
+ */
 Value *evalLet(Value *args, Frame *frame) {
     Frame *subFrame = makeFrame(frame);
     Value *bindings = car(args);
     Value *tempBinding;
-
+    
     if(bindings->type != CONS_TYPE){
         printf("evaluation error: list of bindings is not nested\n");
         texit(1);
@@ -293,18 +293,18 @@ Value *evalLet(Value *args, Frame *frame) {
         Value *expressions = cdr(args);
         Value *symbol;
         Value *bindingsExp;
-
+        
         if(bindings->type != CONS_TYPE){
             printf("evaluation error: improper binding\n");
             texit(1);
         }
-        while(bindings->type != NULL_TYPE){ 
+        while(bindings->type != NULL_TYPE){
             if(car(bindings)->type == CONS_TYPE && cdr(car(bindings))->type == CONS_TYPE && cdr(cdr(car(bindings)))->type == NULL_TYPE){
                 symbol = car(car(bindings)); //takes symbol of binding
                 bindingsExp = car(cdr(car(bindings)));
                 if(symbol->type == SYMBOL_TYPE){
-                    tempBinding = cons(symbol, eval(bindingsExp, frame));  //create binding  
-                 }else{
+                    tempBinding = cons(symbol, eval(bindingsExp, frame));  //create binding
+                }else{
                     printf("evaluation error: variable is not a symbol\n");
                     texit(1);
                 }
@@ -312,7 +312,7 @@ Value *evalLet(Value *args, Frame *frame) {
                 printf("evaluation error: invalid list of bindings\n");
                 texit(1);
             }
-            bindings = cdr(bindings); 
+            bindings = cdr(bindings);
             subFrame->bindings = cons(tempBinding, subFrame->bindings); //adds binding to subframe
         }
         while (cdr(expressions)->type != NULL_TYPE) {
@@ -320,19 +320,19 @@ Value *evalLet(Value *args, Frame *frame) {
             expressions = cdr(expressions);
         }
         return eval(car(expressions),subFrame);
-    }      
+    }
 }
 
 /*
-* Take a SYMBOL_TYPE Value and look it up in the stack of frames. Start with one 
-* you're in, then go up the chain of parents
-*/
+ * Take a SYMBOL_TYPE Value and look it up in the stack of frames. Start with one
+ * you're in, then go up the chain of parents
+ */
 Value *lookUpSymbol(Value *tree, Frame *frame) {
     Frame *currFrame = frame;
     Value *currBinding = makeNull();
     Value *nextBinding = frame->bindings;
     
-    while(currFrame != NULL){ 
+    while(currFrame != NULL){
         nextBinding = currFrame->bindings; //iterates through frame
         while(nextBinding->type != NULL_TYPE){ //checks in current frame for binding match
             currBinding = car(nextBinding);
@@ -349,29 +349,29 @@ Value *lookUpSymbol(Value *tree, Frame *frame) {
 }
 
 /*
-* Main function for interpreter. Take a tree of parse'd scheme code (R5RS) and evaluate it using C.
-* Implements a Recursive Descent Parser (right??).
-* 
-*/
+ * Main function for interpreter. Take a tree of parse'd scheme code (R5RS) and evaluate it using C.
+ * Implements a Recursive Descent Parser (right??).
+ *
+ */
 Value *eval(Value *tree, Frame *frame) {
     Value *result = makeNull();
     switch (tree->type) {
         case INT_TYPE:
             return tree;
             break;
-        case BOOL_TYPE: 
-           return tree;
-           break;
-         case SYMBOL_TYPE:
+        case BOOL_TYPE:
+            return tree;
+            break;
+        case SYMBOL_TYPE:
             return lookUpSymbol(tree, frame);
             break;
-         case STR_TYPE:
+        case STR_TYPE:
             return tree;
             break;
         case CONS_TYPE: {
             Value *first = car(tree);
             Value *args = cdr(tree);
-
+            
             if (strcmp(first->s,"if") == 0) {
                 result = evalIf(args,frame);
             } else if (!strcmp(first->s,"let")) {
@@ -383,7 +383,7 @@ Value *eval(Value *tree, Frame *frame) {
             } else if (!strcmp(first->s, "lambda")){
                 result = evalLambda(args, frame);
             } else {  //It's a Primitive or closure type!
-                Value *evaledOperator = eval(first, frame);    
+                Value *evaledOperator = eval(first, frame);
                 Value *evaledArgs = evalEach(args, frame);
                 if (evaledArgs->type == NULL_TYPE) {
                     return first;
@@ -391,10 +391,10 @@ Value *eval(Value *tree, Frame *frame) {
                 if (evaledOperator->type == PRIMITIVE_TYPE) {
                     return applyPrimitive(evaledOperator->pf, evaledArgs);
                 } else if (evaledOperator->type == CLOSURE_TYPE){
-                    return apply(evaledOperator,evaledArgs); 
+                    return apply(evaledOperator,evaledArgs);
                 } else {
                     printf("ERROR, method not defined\n");
-                }  
+                }
             }
             break;
         }
@@ -405,9 +405,9 @@ Value *eval(Value *tree, Frame *frame) {
 }
 
 /*
-* returns the first thing from a list 
-* EXAMPLE:  (car (quote (a b c))) = a
-*/
+ * returns the first thing from a list
+ * EXAMPLE:  (car (quote (a b c))) = a
+ */
 Value *primitiveCar(Value *value){
     // Error Checking
     if (value->type != CONS_TYPE){
@@ -423,9 +423,9 @@ Value *primitiveCar(Value *value){
 }
 
 /*
-* returns everything bu the first thing from a list 
-* EXAMPLE:  (cdr (quote (a b c))) = (b c)
-*/
+ * returns everything bu the first thing from a list
+ * EXAMPLE:  (cdr (quote (a b c))) = (b c)
+ */
 Value *primitiveCdr(Value *value){
     Value *result;
     Value *temp = makeNull();
@@ -448,10 +448,10 @@ Value *primitiveCdr(Value *value){
 }
 
 /*
-* Implements the scheme function "Cons"
-* EXAMPLE: (cons 6 3) = (6 . 3)
-* EXAMPLE: (cons 5 (quote(3 4 6)) ) = (5 3 4 6)
-*/
+ * Implements the scheme function "Cons"
+ * EXAMPLE: (cons 6 3) = (6 . 3)
+ * EXAMPLE: (cons 5 (quote(3 4 6)) ) = (5 3 4 6)
+ */
 Value *primitiveCons(Value *value) {
     // Error Checking
     if (value->type != CONS_TYPE){ // Problem if neither thing is a cons
@@ -470,31 +470,31 @@ Value *primitiveCons(Value *value) {
     Value *secondResult;
     //check of first arg is cons
     if (firstCons->type == CONS_TYPE){
-        firstCons = car(firstCons);   
-    } 
+        firstCons = car(firstCons);
+    }
     //check if second arg is cons
     if (secondCons->type == CONS_TYPE){ // Case where you are "cons-ing" two lists
         if(car(secondCons)->type == CONS_TYPE){
             secondResult = car(car(secondCons));
             while(cdr(car(secondCons))->type != NULL_TYPE){
-            secondResult = cons(car(cdr(car(secondCons))), secondResult);
-            secondCons = cdr(secondCons);
+                secondResult = cons(car(cdr(car(secondCons))), secondResult);
+                secondCons = cdr(secondCons);
             }
             return cons(cons((firstCons), secondResult) , end);
         }
         else{ // Case where first thing is cons, second isn't
             return cons(cons(firstCons, car(secondCons)), end);
         }
-    } 
+    }
     printf("errpr: cons error\n");
     texit(1);
     return NULL;
 }
 
 /*
-* returns the sum of all arguments if they are ints and doubles
-* EXAMPLE:  (+ 2.2 9 0) = 11.2
-*/
+ * returns the sum of all arguments if they are ints and doubles
+ * EXAMPLE:  (+ 2.2 9 0) = 11.2
+ */
 Value *primitiveAdd(Value *args) {
     double result = 0;
     //At end of while loop have the result in a double form
@@ -507,16 +507,16 @@ Value *primitiveAdd(Value *args) {
         }
         if (number->type == INT_TYPE){
             result += (float)number->i;
-
+            
         } else {
             result += number->d;
         }
         args = cdr(args);
     }
-
+    
     int intResult = (int) result;
     //If "Int-ing" the result gives a value equal to result, then final result is an int
-    //so we shouldn't return a double. 
+    //so we shouldn't return a double.
     if (intResult == result) { //case where result we want to return is a int
         Value *returnResult = makeNull();
         returnResult->i = (int) result;
@@ -530,9 +530,267 @@ Value *primitiveAdd(Value *args) {
     }
 }
 
+/* * should be able to take any number of numeric arguments >= 2 */
+Value *primitiveMult(Value *args) {
+    
+    double result = 1.0; // Multiplies args by 1
+    
+    //loop through all arguments, add them
+    while(args->type != NULL_TYPE){
+        Value *number = car(args);
+        //check to make sure args are ints or doubles
+        if (number->type != INT_TYPE &&
+            number->type != DOUBLE_TYPE) {
+            printf("Syntax Error: Mult expect a INT_TYPE or DOUBLE_TYPE!\n");
+            texit(1);
+        }
+        if(number->type == INT_TYPE){
+            result = result * number->i;
+        }
+        else {
+            result = result * number->d;
+        }
+        
+        args = cdr(args);
+    }
+    
+    int intResult = (int) result;
+    
+    if (intResult == result) {
+        
+        Value *returnResult = makeNull();
+        returnResult->i = (int) result;
+        returnResult->type = INT_TYPE;
+        return returnResult;
+    } else {
+        
+        Value *returnResult = makeNull();
+        returnResult->d = result;
+        returnResult->type = DOUBLE_TYPE;
+        return returnResult;
+    }
+}
+
+
+Value *primitiveDiv(Value *args){
+    //Checking the length of sublist.
+    double first,second;
+    if (length(args) != 2){
+        printf("Error: Expected only two arguments!\n");
+        texit(1);
+    }
+    Value *firstArg = car(args);
+    Value *secondArg = car(cdr(args));
+    //Checking the type of sublist, only allow INT_TYPE and DOUBLE_TYPE.
+    if ((firstArg->type != INT_TYPE && firstArg->type != DOUBLE_TYPE) ||
+        (secondArg->type != INT_TYPE && secondArg->type != DOUBLE_TYPE)){
+        printf("Error: Expected an INT_TYPE or DOUBLE_TYPE!\n");
+        texit(1);
+    }
+    if (firstArg->type == INT_TYPE){
+        first = (double)firstArg->i;
+    }
+    else {
+        first = firstArg->d;
+    }
+    if (secondArg->type == INT_TYPE){
+        second = (double)secondArg->i;
+    }
+    else {
+        second = secondArg->d;
+    }
+    
+    double result = first / second;
+    
+    int intResult = (int) result;
+    
+    if (intResult == result) {
+        
+        Value *returnResult = makeNull();
+        returnResult->i = (int) result;
+        returnResult->type = INT_TYPE;
+        return returnResult;
+    } else {
+        
+        Value *returnResult = makeNull();
+        returnResult->d = result;
+        returnResult->type = DOUBLE_TYPE;
+        return returnResult;
+    }
+}
+
+
+Value *primitiveSub(Value *args){
+    double first,second;
+    if (length(args) != 2){
+        printf("Error: Only two arguments expected!\n");
+        texit(1);
+    }
+    Value *firstArg = car(args);
+    Value *secondArg = car(cdr(args));
+    
+    if ((firstArg->type != INT_TYPE && firstArg->type != DOUBLE_TYPE) ||
+        (secondArg->type != INT_TYPE && secondArg->type != DOUBLE_TYPE)){
+        printf("Error: Expected an INT_TYPE or DOUBLE_TYPE!\n");
+        texit(1);
+    }
+    
+    if (firstArg->type == INT_TYPE){
+        first = (double)firstArg->i;
+    }
+    else {
+        first = firstArg->d;
+    }
+    if (secondArg->type == INT_TYPE){
+        second = (double)secondArg->i;
+    }
+    else {
+        second = secondArg->d;
+    }
+    
+    double result = first - second;
+    
+    int intResult = (int) result;
+    
+    if (intResult == result) {
+        Value *returnResult = makeNull();
+        returnResult->i = (int) result;
+        returnResult->type = INT_TYPE;
+        //printf("got to the end of primitive add\n");
+        return returnResult;
+    } else {
+        Value *returnResult = makeNull();
+        returnResult->d = result;
+        returnResult->type = DOUBLE_TYPE;
+        //printf("got to the end of primitive add\n");
+        return returnResult;
+    }
+}
+
+Value *primitiveLess(Value *args){
+    double first,second;
+    
+    if (length(args) != 2){
+        printf("Error: Expected only two arguments!\n");
+        texit(1);
+    }
+    Value *firstArg = car(args);
+    Value *secondArg = car(cdr(args));
+    
+    
+    if ((firstArg->type != INT_TYPE && firstArg->type != DOUBLE_TYPE)||
+        (secondArg->type != INT_TYPE && secondArg->type != DOUBLE_TYPE)){
+        printf("Error: Expected an INT_TYPE or DOUBLE_TYPE!\n");
+        texit(1);
+    }
+    
+    if (firstArg->type == INT_TYPE){
+        first = (double)firstArg->i;
+    }
+    else {
+        first = firstArg->d;
+    }
+    if (secondArg->type == INT_TYPE){
+        second = (double)secondArg->i;
+    }
+    else {
+        second = secondArg->d;
+    }
+    
+    Value *returnResult = talloc(sizeof(Value));
+    returnResult->type = BOOL_TYPE;
+    if (first >= second){
+        returnResult->i = 0;
+    }else{
+        returnResult->i = 1;
+    }
+    
+    return returnResult;
+}
+
+Value *primitiveGreater(Value *args){
+    double first,second;
+    
+    if (length(args) != 2){
+        printf("Error: Expected only two arguments!\n");
+        texit(1);
+    }
+    Value *firstArg = car(args);
+    Value *secondArg = car(cdr(args));
+    
+    if ((firstArg->type != INT_TYPE && firstArg->type != DOUBLE_TYPE)||
+        (secondArg->type != INT_TYPE && secondArg->type != DOUBLE_TYPE)){
+        printf("Error: Expected an INT_TYPE or DOUBLE_TYPE!\n");
+        texit(1);
+    }
+    
+    if (firstArg->type == INT_TYPE){
+        first = (double)firstArg->i;
+    }
+    else {
+        first = firstArg->d;
+    }
+    if (secondArg->type == INT_TYPE){
+        second = (double)secondArg->i;
+    }
+    else {
+        second = secondArg->d;
+    }
+    
+    Value *returnResult = talloc(sizeof(Value));
+    returnResult->type = BOOL_TYPE;
+    if (first >= second){
+        returnResult->i = 1;
+    }else{
+        returnResult->i = 0;
+    }
+    
+    return returnResult;
+}
+
+Value *primitiveEq(Value *args){
+    //Checking the length of sublist.
+    double first,second;
+    if (length(args) != 2){
+        printf("Error: Expected only two arguments!\n");
+        texit(1);
+    }
+    Value *firstArg = car(args);
+    Value *secondArg = car(cdr(args));
+    //Checking the type of sublist, only allow INT_TYPE and DOUBLE_TYPE.
+    if ((firstArg->type != INT_TYPE && firstArg->type != DOUBLE_TYPE)||
+        (secondArg->type != INT_TYPE && secondArg->type != DOUBLE_TYPE) ){
+        printf("Error: Expected an INT_TYPE or DOUBLE_TYPE!\n");
+        texit(1);
+    }
+    
+    if (firstArg->type == INT_TYPE){
+        first = (double)firstArg->i;
+    }
+    else {
+        first = firstArg->d;
+    }
+    if (secondArg->type == INT_TYPE){
+        second = (double)secondArg->i;
+    }
+    else {
+        second = secondArg->d;
+    }
+    
+    Value *returnResult = talloc(sizeof(Value));
+    returnResult->type = BOOL_TYPE;
+    if (first == second){
+        returnResult->i = 1;
+    }else{
+        returnResult->s = 0;
+    }
+    return returnResult;
+}
+
+
 /*
-* 
-*/
+ *
+ */
 Value *primitiveNull(Value *value){
     Value *result = makeNull();
     result->type = BOOL_TYPE;
@@ -541,7 +799,7 @@ Value *primitiveNull(Value *value){
         printf("Syntax Error: Expect only one argument.\n");
         texit(1);
     }
-    if (car(car(value))->type == NULL_TYPE){    
+    if (car(car(value))->type == NULL_TYPE){
         result->i = 1;
         return result;
     }
@@ -552,9 +810,9 @@ Value *primitiveNull(Value *value){
 }
 
 /*
-* Takes a primitive function name, corresponding C function, and frame
-* Creates a Global Frame binding of the name to the C function
-*/
+ * Takes a primitive function name, corresponding C function, and frame
+ * Creates a Global Frame binding of the name to the C function
+ */
 void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
     Value *value = talloc(sizeof(Value));
     value->type = PRIMITIVE_TYPE;
@@ -562,29 +820,35 @@ void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
     Value *valueName = makeNull();
     valueName->type = SYMBOL_TYPE;
     valueName->s = name;
-
+    
     Value *tempBinding = cons(valueName, value);
     topFrame->bindings = cons(tempBinding, topFrame->bindings);
 }
 
 /*
-* Helper function to make interpret() look better
-* Binds all the primitives at start of program in the Global Frame
-*/
+ * Helper function to make interpret() look better
+ * Binds all the primitives at start of program in the Global Frame
+ */
 void bindPrimitives(Frame *frame){
     bind("+", primitiveAdd, frame);
     bind("null?", primitiveNull, frame);
     bind("car", primitiveCar, frame);
     bind("cdr", primitiveCdr, frame);
     bind("cons", primitiveCons, frame);
+    bind("*", primitiveMult, frame);
+    bind("-", primitiveSub, frame);
+    bind("<", primitiveLess, frame);
+    bind(">", primitiveGreater, frame);
+    bind("/", primitiveDiv, frame);
+    bind("=", primitiveEq, frame);
 }
 
 /*
-* Kick everything off by taking in the parse tree,
-* Creating a global frame and putting primitive bindings in it
-* Going through the tree recursively calling eval,
-* and finally printing the output of the parse tree code
-*/
+ * Kick everything off by taking in the parse tree,
+ * Creating a global frame and putting primitive bindings in it
+ * Going through the tree recursively calling eval,
+ * and finally printing the output of the parse tree code
+ */
 void interpret(Value *tree) {
     topFrame = makeFrame(NULL);
     bindPrimitives(topFrame);
@@ -594,9 +858,7 @@ void interpret(Value *tree) {
         printInterpreter(results);
         if(results->type != VOID_TYPE){
             printf("\n");
-        }   
+        }
         tree = cdr(tree);
     }
 }
-
-
