@@ -338,14 +338,11 @@ Value *evalCond(Value *args, Frame *frame) {
 
     Value *current = args;
     while (current->type != NULL_TYPE) {
-    
         
         Value *currExpression = car(current);
        
         Value *predicate = car(currExpression);
         Value *expr = cdr(currExpression);
-        
-        
         
         if (predicate->type == SYMBOL_TYPE &&
             !strcmp(predicate->s, "else")) {
@@ -354,7 +351,7 @@ Value *evalCond(Value *args, Frame *frame) {
         
         // Evaluate the condition if this is not the else case.
         predicate = eval(predicate, frame);
-                
+        
         if (predicate->type != BOOL_TYPE) {
             printf("Error: Predicate should evaluate to a BOOL_TYPE \n");
             texit(1);
@@ -364,11 +361,92 @@ Value *evalCond(Value *args, Frame *frame) {
         }
         current = cdr(current);
     }
-    
-    //Value *result = makeNull();
-    
 }
 
+/* The begin special form is used to evaluate expressions in a particular order.
+ *  The begin special form is used to evaluate expressions in a particular order.
+ * This expression type is used to sequence side effects such as input and output.
+*/
+
+//Value *evalBegin(Value *args, Frame *frame) {
+//
+//    Value *current = args;
+//    Value *currExpression = car(current);
+//
+//    while (currExpression->type != NULL_TYPE) {
+//
+//        eval(currExpression, frame);
+//
+//        Value *next = cdr(current);
+//
+//    }
+//}
+
+
+
+/* The expressions are evaluated from left to right, and the value of the first expression that evaluates to a false value is returned.
+ * Any remaining expressions are not evaluated. If all the expressions evaluate to true values, the value of the last expression is returned
+ * If there are no expressions then #t is returned.
+*/
+
+Value *evalAnd(Value *args, Frame *frame) {
+    
+    Value *current = args;
+    
+    while (current->type != NULL_TYPE) {
+        
+        Value *cur = eval(car(current), frame);
+        // Returns false if cur is false
+        if (cur->type == BOOL_TYPE) {
+            if (cur->i == 0) {
+                return cur;
+            }
+        } else { // Should only be BOOL_TYPE
+            
+            printf("Error: Expected boolean \n");
+        }
+        
+        current = cdr(current);
+    }
+    
+    Value *result = makeNull();
+    result->type = BOOL_TYPE;
+    result->i = 1;
+    return result;
+}
+
+/* The expressions are evaluated from left to right, and the value of the first expression that evaluates to a true value is returned.
+ * Any remaining expressions are not evaluated.
+ * If all expressions evaluate to false values, the value of the last expression is returned
+ * If there are no expressions then #f is returned.
+*/
+
+Value *evalOr(Value *args, Frame *frame) {
+    
+    Value *current = args;
+    
+    while (current->type != NULL_TYPE) {
+        
+        Value *cur = eval(car(current), frame);
+        
+        if (cur->type == BOOL_TYPE) {
+            if (cur->i == 1) {
+                return cur;
+            }
+        } else { // Should only be BOOL_TYPE
+            
+            printf("Error: Expected boolean \n");
+        }
+        
+        current = cdr(current);
+    }
+    
+    Value *result = makeNull();
+    result->type = BOOL_TYPE;
+    result->i = 0;
+    return result;
+        
+}
 
 
 
@@ -433,7 +511,11 @@ Value *eval(Value *tree, Frame *frame) {
                 result = evalLambda(args, frame);
             } else if (!strcmp(first->s, "cond")) {
                  result = evalCond(args, frame);
-            }   else {  //It's a Primitive or closure type!
+            } else if (!strcmp(first->s, "and")) {
+                result = evalAnd(args, frame);
+            } else if (!strcmp(first->s, "or")) {
+                result = evalOr(args, frame);
+            } else {  //It's a Primitive or closure type!
                 Value *evaledOperator = eval(first, frame);
                 Value *evaledArgs = evalEach(args, frame);
                 if (evaledArgs->type == NULL_TYPE) {
