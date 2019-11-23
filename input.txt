@@ -10,3 +10,12 @@
 (cons (quote(3 4 6)) 5)
 (cons (quote(2 3)) (quote(3)))
 (cons 6 3)
+
+(let ((x 6)) (set! x 9) x)
+
+(define x 3)
+
+(begin (set! x (+ x 1)) (+ x x))
+(module 5 3)
+(module 10 1)
+(module 9 2)

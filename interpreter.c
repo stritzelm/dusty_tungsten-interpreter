@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <math.h>
 
 //Global Frame
 Frame *topFrame;
@@ -368,19 +369,16 @@ Value *evalCond(Value *args, Frame *frame) {
  * This expression type is used to sequence side effects such as input and output.
 */
 
-//Value *evalBegin(Value *args, Frame *frame) {
-//
-//    Value *current = args;
-//    Value *currExpression = car(current);
-//
-//    while (currExpression->type != NULL_TYPE) {
-//
-//        eval(currExpression, frame);
-//
-//        Value *next = cdr(current);
-//
-//    }
-//}
+Value *evalBegin(Value *args, Frame *frame) {
+
+   Value *currexpressions = args;
+
+    while (cdr(currexpressions)->type != NULL_TYPE) {
+            eval(car(currexpressions), frame);
+            currexpressions = cdr(currexpressions);
+        }
+    return eval(car(currexpressions),frame);
+}
 
 
 
@@ -448,6 +446,39 @@ Value *evalOr(Value *args, Frame *frame) {
         
 }
 
+/*
+*
+*/
+void evalSetBang(Value *args, Frame *frame) {
+    if (cdr(args)->type == NULL_TYPE || args->type == NULL_TYPE) {
+        printf("Evaluation ERROR!\n");
+        texit(1);
+    }
+    if (cdr(cdr(args))->type != NULL_TYPE) {
+        printf("Evaluation ERROR! This implementation only supports two arguments\n");
+        texit(1);
+    }
+
+    Value *variable = car(args);
+    Value *expression = eval(car(cdr(args)), frame);
+
+
+    Frame *currFrame = frame;
+    Value *currBinding = makeNull();
+    Value *nextBinding = frame->bindings;
+    
+    while(currFrame != NULL){ 
+        nextBinding = currFrame->bindings; //iterates through frame
+        while(nextBinding->type != NULL_TYPE){ //checks in current frame for binding match
+            currBinding = car(nextBinding);
+            if(!strcmp(variable->s, car(currBinding)->s)){
+                cdr(currBinding)->i = expression->i;
+            }
+            nextBinding = cdr(nextBinding);
+        }
+        currFrame = currFrame->parent;
+    }
+}
 
 
 /*
@@ -515,6 +546,10 @@ Value *eval(Value *tree, Frame *frame) {
                 result = evalAnd(args, frame);
             } else if (!strcmp(first->s, "or")) {
                 result = evalOr(args, frame);
+            } else if (!strcmp(first->s, "set!")) {
+                evalSetBang(args, frame);
+            } else if (!strcmp(first->s, "begin")) {
+                result = evalBegin(args, frame);
             } else {  //It's a Primitive or closure type!
                 Value *evaledOperator = eval(first, frame);
                 Value *evaledArgs = evalEach(args, frame);
@@ -535,6 +570,58 @@ Value *eval(Value *tree, Frame *frame) {
             return tree;
     }
     return result;
+}
+
+/*
+* Primitive module, returns the answer to a x % y
+* EXAMPLE: (module 10 3) = 1
+* EXAMPLE: (module 12 7) = 5
+*/
+Value *primitiveModule(Value *value) {
+    double first,second;
+    if (length(value) != 2){
+        printf("Error: Only two arguments expected!\n");
+        texit(1);
+    }
+    Value *firstArg = car(value);
+    Value *secondArg = car(cdr(value));
+    
+    if ((firstArg->type != INT_TYPE && firstArg->type != DOUBLE_TYPE) ||
+        (secondArg->type != INT_TYPE && secondArg->type != DOUBLE_TYPE)){
+        printf("Error: Expected an INT_TYPE or DOUBLE_TYPE!\n");
+        texit(1);
+    }
+    
+    if (firstArg->type == INT_TYPE){
+        first = (double)firstArg->i;
+    }
+    else {
+        first = firstArg->d;
+    }
+    if (secondArg->type == INT_TYPE){
+        second = (double)secondArg->i;
+    }
+    else {
+        second = secondArg->d;
+    }
+
+    while ((first - second) >= 0) {
+        first = first - second;
+    } 
+    int intResult = (int) first;
+    //If "Int-ing" the result gives a value equal to result, then final result is an int
+    //so we shouldn't return a double.
+    if (intResult == first) { //case where result we want to return is a int
+        Value *returnResult = makeNull();
+        returnResult->i = (int) first;
+        returnResult->type = INT_TYPE;
+        return returnResult;
+    } else { //case where result we want to return is a double
+        Value *returnResult = makeNull();
+        returnResult->d = first;
+        returnResult->type = DOUBLE_TYPE;
+        return returnResult;
+    }
 }
 
 /*
@@ -975,6 +1062,7 @@ void bindPrimitives(Frame *frame){
     bind(">", primitiveGreater, frame);
     bind("/", primitiveDiv, frame);
     bind("=", primitiveEq, frame);
+    bind("module", primitiveModule, frame);
 }
 
 /*
