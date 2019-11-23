@@ -325,6 +325,54 @@ Value *evalLet(Value *args, Frame *frame) {
 }
 
 
+/*
+ *
+ *
+ */
+Value *evalLetStar(Value *args, Frame *frame){
+    //take bindings and body
+    Value *bindings = car(args);
+    Value *expression = cdr(args);
+    Frame *parentFrame = frame;
+
+    //create temp binding, symbol, and expression variables
+    Value *tempBinding;
+    Value *symbol; 
+    Value *bindingExpr;
+    Frame *subFrame;
+
+    //while loop
+    //create subframe, parent is previous curr frame
+    //want to bind bindings to that frame
+
+    //create new frame and binds
+    while(bindings->type != NULL_TYPE){
+        subFrame = makeFrame(parentFrame);
+
+        //assign symbol, variable, and tempBinding values to respective variables
+        symbol = car(car(bindings));
+        
+        bindingExpr = car(cdr(car(bindings)));
+        tempBinding = cons(symbol, eval(bindingExpr,subFrame));
+
+        //assign bindings to subframe
+        subFrame->bindings = cons(tempBinding, subFrame->bindings);
+
+        //iterate to next bindings
+        bindings = cdr(bindings);
+        parentFrame = subFrame;
+    }
+    //eval expression
+    while(cdr(expression)->type != NULL_TYPE){
+        eval(car(expression), subFrame);
+        expression = cdr(expression);
+    }
+    //return evaluated expressions
+return eval(car(expression),subFrame);
+
+}
+
+
 /* Evaluates the predicate expressions of successive clauses in order, until one of the predicates evaluates to a true value.
  *
  * When a predicate evaluates to a true value, cond evaluates the expressions in the associated clause in left to right order,
@@ -550,6 +598,8 @@ Value *eval(Value *tree, Frame *frame) {
                 evalSetBang(args, frame);
             } else if (!strcmp(first->s, "begin")) {
                 result = evalBegin(args, frame);
+            } else if (!strcmp(first->s, "let*")) {
+                evalLetStar(args, frame);
             } else {  //It's a Primitive or closure type!
                 Value *evaledOperator = eval(first, frame);
                 Value *evaledArgs = evalEach(args, frame);
