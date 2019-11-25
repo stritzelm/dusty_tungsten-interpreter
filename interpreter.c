@@ -277,6 +277,11 @@ Value *evalQuote(Value *args) {
  * Then once done with creating bindings, eval the rest of the code in that frame
  */
 Value *evalLet(Value *args, Frame *frame) {
+    if(args->type != CONS_TYPE){
+        printf("evaluation error: no args\n");
+        texit(1);
+        return NULL;
+    }
     Frame *subFrame = makeFrame(frame);
     Value *bindings = car(args);
     Value *tempBinding;
@@ -329,52 +334,61 @@ Value *evalLet(Value *args, Frame *frame) {
  *
  *
  */
-Value *evalLetStar(Value *args, Frame *frame){
+Value *evalLetStar(Value *args, Frame *frame){    
     //take bindings and body
-    /*
     if(args->type != CONS_TYPE){
-        printf("evaluation error: list of bindings is not nested\n");
-        texit(1);
-    }
-    if(bindings->type != CONS_TYPE){
-        printf("evaluation error: list of bindings is not nested\n");
-        texit(1);
-    }
-    if((cdr(args))->type == NULL_TYPE && cdr(args)->type != CONS_TYPE){
-        printf("evaluation error: no body expression\n");
+        printf("evaluation error: no args\n");
         texit(1);
         return NULL;
     }
-    */
     Value *bindings = car(args);
     Value *expression = cdr(args);
     Frame *parentFrame = frame;
 
+    if(bindings->type != CONS_TYPE){
+        printf("evaluation error: list of bindings is not nested\n");
+        texit(1);
+        return NULL;
+    }
+    if(expression->type == NULL_TYPE && expression->type != CONS_TYPE){
+        printf("evaluation error: no body expression\n");
+        texit(1);
+        return NULL;
+    }
+    
     //create temp binding, symbol, and expression variables
     Value *tempBinding;
     Value *symbol; 
     Value *bindingExpr;
     Frame *subFrame;
-    if(bindings->type != CONS_TYPE){
-        printf("evaluation error: improper binding\n");
-        texit(1);
-    }
 
     //while loop
     //create subframe, parent is previous curr frame
     //want to bind bindings to that frame
-    //create new frame and binds
-
+      //create new frame and binds
     while(bindings->type != NULL_TYPE){
         subFrame = makeFrame(parentFrame);
-
-        //assign symbol, variable, and tempBinding values to respective variables
-        symbol = car(car(bindings));
+         //assign symbol, variable, and tempBinding values to respective variables
+        if(car(bindings)->type == CONS_TYPE && cdr(car(bindings))->type == CONS_TYPE && cdr(cdr(car(bindings)))->type == NULL_TYPE){
+                symbol = car(car(bindings)); //takes symbol of binding
+                bindingExpr = car(cdr(car(bindings)));; //take binding expr for that symbol
+            if(symbol->type == SYMBOL_TYPE){
+                tempBinding = cons(symbol, eval(bindingExpr,subFrame));  //create binding
+            }else{
+                printf("evaluation error: variable is not a symbol\n");
+                texit(1);
+            }
+        } else{
+            printf("evaluation error: invalid list of bindings\n");
+            texit(1);
+        }
         
-        bindingExpr = car(cdr(car(bindings)));
-        tempBinding = cons(symbol, eval(bindingExpr,subFrame));
-
+        //u can remove this dill*****
+        //symbol = car(car(bindings));
+        //bindingExpr = car(cdr(car(bindings)));
+        //tempBinding = cons(symbol, eval(bindingExpr,subFrame));
         //assign bindings to subframe
+
         subFrame->bindings = cons(tempBinding, subFrame->bindings);
 
         //iterate to next bindings
@@ -390,7 +404,6 @@ Value *evalLetStar(Value *args, Frame *frame){
 return eval(car(expression),subFrame);
 
 }
-
 /*
 *
 */
@@ -430,7 +443,7 @@ void evalSetBang(Value *args, Frame *frame) {
 //evaluate the body
 //the expressions and body are all evaluated in an environment that contains binding of variables
 
-//
+
 Value *evalLetRec(Value *args, Frame *frame) {
      //take bindings and body
     /*
@@ -448,6 +461,7 @@ Value *evalLetRec(Value *args, Frame *frame) {
         return NULL;
     }
     */
+
     Value *bindings = car(args);
     Value *expression = cdr(args);
     printf("__________________________\n");
@@ -708,7 +722,7 @@ Value *eval(Value *tree, Frame *frame) {
             } else if (!strcmp(first->s, "letrec")) {
                 result = evalLetRec(args, frame);
             }else if (!strcmp(first->s, "let*")) {
-                evalLetStar(args, frame);
+                result = evalLetStar(args, frame);
             } else {  //It's a Primitive or closure type!
                 Value *evaledOperator = eval(first, frame);
                 Value *evaledArgs = evalEach(args, frame);
@@ -1174,6 +1188,11 @@ Value *primitiveEq(Value *args){
 Value *primitiveNull(Value *value){
     Value *result = makeNull();
     result->type = BOOL_TYPE;
+    if(value->type == NULL_TYPE){
+        //error because more than 1 arguement
+        printf("Syntax Error:  no argument.\n");
+        texit(1);
+    }
     if(value->type == CONS_TYPE && cdr(value)->type!= NULL_TYPE){
         //error because more than 1 arguement
         printf("Syntax Error: Expect only one argument.\n");
