@@ -331,6 +331,21 @@ Value *evalLet(Value *args, Frame *frame) {
  */
 Value *evalLetStar(Value *args, Frame *frame){
     //take bindings and body
+    /*
+    if(args->type != CONS_TYPE){
+        printf("evaluation error: list of bindings is not nested\n");
+        texit(1);
+    }
+    if(bindings->type != CONS_TYPE){
+        printf("evaluation error: list of bindings is not nested\n");
+        texit(1);
+    }
+    if((cdr(args))->type == NULL_TYPE && cdr(args)->type != CONS_TYPE){
+        printf("evaluation error: no body expression\n");
+        texit(1);
+        return NULL;
+    }
+    */
     Value *bindings = car(args);
     Value *expression = cdr(args);
     Frame *parentFrame = frame;
@@ -340,12 +355,16 @@ Value *evalLetStar(Value *args, Frame *frame){
     Value *symbol; 
     Value *bindingExpr;
     Frame *subFrame;
+    if(bindings->type != CONS_TYPE){
+        printf("evaluation error: improper binding\n");
+        texit(1);
+    }
 
     //while loop
     //create subframe, parent is previous curr frame
     //want to bind bindings to that frame
-
     //create new frame and binds
+
     while(bindings->type != NULL_TYPE){
         subFrame = makeFrame(parentFrame);
 
@@ -372,6 +391,126 @@ return eval(car(expression),subFrame);
 
 }
 
+/*
+*
+*/
+void evalSetBang(Value *args, Frame *frame) {
+    if (cdr(args)->type == NULL_TYPE || args->type == NULL_TYPE) {
+        printf("Evaluation ERROR!\n");
+        texit(1);
+    }
+    if (cdr(cdr(args))->type != NULL_TYPE) {
+        printf("Evaluation ERROR! This implementation only supports two arguments\n");
+        texit(1);
+    }
+
+    Value *variable = car(args);
+    Value *expression = eval(car(cdr(args)), frame);
+
+
+    Frame *currFrame = frame;
+    Value *currBinding = makeNull();
+    Value *nextBinding = frame->bindings;
+    
+    while(currFrame != NULL){ 
+        nextBinding = currFrame->bindings; //iterates through frame
+        while(nextBinding->type != NULL_TYPE){ //checks in current frame for binding match
+            currBinding = car(nextBinding);
+            if(!strcmp(variable->s, car(currBinding)->s)){
+                cdr(currBinding)->i = expression->i;
+            }
+            nextBinding = cdr(nextBinding);
+        }
+        currFrame = currFrame->parent;
+    }
+}
+//bind variables to undefined
+//evaluate te expressions in unspecified order
+//assign the variables to resulting values
+//evaluate the body
+//the expressions and body are all evaluated in an environment that contains binding of variables
+
+//
+Value *evalLetRec(Value *args, Frame *frame) {
+     //take bindings and body
+    /*
+    if(args->type != CONS_TYPE){
+        printf("evaluation error: list of bindings is not nested\n");
+        texit(1);
+    }
+    if(bindings->type != CONS_TYPE){
+        printf("evaluation error: list of bindings is not nested\n");
+        texit(1);
+    }
+    if((cdr(args))->type == NULL_TYPE && cdr(args)->type != CONS_TYPE){
+        printf("evaluation error: no body expression\n");
+        texit(1);
+        return NULL;
+    }
+    */
+    Value *bindings = car(args);
+    Value *expression = cdr(args);
+    printf("__________________________\n");
+    printInterpreter(expression);
+    printf("__________________________\n");
+
+    //Frame *parentFrame = frame;
+
+    //create temp binding, symbol, and expression variables
+    Value *tempBinding;
+    Value *tempValue = makeNull();
+    Value *symbol; 
+    Value *bindingExpr;
+    Frame *subFrame = makeFrame(frame);
+    if(bindings->type != CONS_TYPE){
+        printf("evaluation error: improper binding\n");
+        texit(1);
+    }
+
+    //while loop
+    //create subframe, parent is previous curr frame
+    //want to bind bindings to that frame
+    //create new frame and binds
+
+    //assign variables to new location, which has an undefined value
+    while (bindings->type != NULL_TYPE) {
+        symbol = car(car(bindings));
+        //bindingExpr = car(cdr(car(bindings)));
+        //printf("hit\n");
+        tempBinding = cons(symbol, tempValue);
+        subFrame->bindings = cons(tempBinding, subFrame->bindings);
+        bindings = cdr(bindings);
+    }
+
+    while(subFrame->bindings != NULL_TYPE){
+        bindingExpr = car(cdr(car(cdr(args)))); 
+        Value *result = eval(bindingExpr, subFrame);
+        Value *setbanginput = cons(car(car(car(args))),result);
+        evalSetBang(setbanginput, subFrame);
+        subFrame->bindings = cdr(subFrame->bindings);
+
+
+        //assign bindings to subframe
+       
+        //tempBinding = cons(tempValue->s, eval(bindingExpr,subFrame));
+        //subFrame->bindings = cons(tempBinding, subFrame->bindings);
+
+        //iterate to next bindings
+    }
+    return eval(car(expression), subFrame);
+//     //eval expression
+//     printf("before error\n");
+//     while(cdr(expression)->type != NULL_TYPE){
+//         eval(car(expression), subFrame);
+//         expression = cdr(expression);
+//     }
+//     printf("made it through\n");
+//     //return evaluated expressions
+// return eval(car(expression),subFrame);
+
+
+
+}
 
 /* Evaluates the predicate expressions of successive clauses in order, until one of the predicates evaluates to a true value.
  *
@@ -494,39 +633,7 @@ Value *evalOr(Value *args, Frame *frame) {
         
 }
 
-/*
-*
-*/
-void evalSetBang(Value *args, Frame *frame) {
-    if (cdr(args)->type == NULL_TYPE || args->type == NULL_TYPE) {
-        printf("Evaluation ERROR!\n");
-        texit(1);
-    }
-    if (cdr(cdr(args))->type != NULL_TYPE) {
-        printf("Evaluation ERROR! This implementation only supports two arguments\n");
-        texit(1);
-    }
 
-    Value *variable = car(args);
-    Value *expression = eval(car(cdr(args)), frame);
-
-
-    Frame *currFrame = frame;
-    Value *currBinding = makeNull();
-    Value *nextBinding = frame->bindings;
-    
-    while(currFrame != NULL){ 
-        nextBinding = currFrame->bindings; //iterates through frame
-        while(nextBinding->type != NULL_TYPE){ //checks in current frame for binding match
-            currBinding = car(nextBinding);
-            if(!strcmp(variable->s, car(currBinding)->s)){
-                cdr(currBinding)->i = expression->i;
-            }
-            nextBinding = cdr(nextBinding);
-        }
-        currFrame = currFrame->parent;
-    }
-}
 
 
 /*
@@ -598,7 +705,9 @@ Value *eval(Value *tree, Frame *frame) {
                 evalSetBang(args, frame);
             } else if (!strcmp(first->s, "begin")) {
                 result = evalBegin(args, frame);
-            } else if (!strcmp(first->s, "let*")) {
+            } else if (!strcmp(first->s, "letrec")) {
+                result = evalLetRec(args, frame);
+            }else if (!strcmp(first->s, "let*")) {
                 evalLetStar(args, frame);
             } else {  //It's a Primitive or closure type!
                 Value *evaledOperator = eval(first, frame);
@@ -1070,7 +1179,7 @@ Value *primitiveNull(Value *value){
         printf("Syntax Error: Expect only one argument.\n");
         texit(1);
     }
-    if (car(car(value))->type == NULL_TYPE){
+    if (car(value)->type == NULL_TYPE){
         result->i = 1;
         return result;
     }
