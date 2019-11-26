@@ -460,67 +460,66 @@ Value *evalLetRec(Value *args, Frame *frame) {
         texit(1);
         return NULL;
     }
+
+    if(bindings->type != CONS_TYPE){
+        printf("evaluation error: improper binding\n");
+        texit(1);
+    }
     */
-
-    Value *bindings = car(args);
+    printf("hitletrec\n");
+    Value *varBindings = car(args);
+    Value *exprBindings = car(args);
     Value *expression = cdr(args);
-    printf("__________________________\n");
-    printInterpreter(expression);
-    printf("__________________________\n");
-
-    //Frame *parentFrame = frame;
+    Frame *subFrame = makeFrame(frame);
 
     //create temp binding, symbol, and expression variables
     Value *tempBinding;
     Value *tempValue = makeNull();
     Value *symbol; 
     Value *bindingExpr;
-    Frame *subFrame = makeFrame(frame);
-    if(bindings->type != CONS_TYPE){
-        printf("evaluation error: improper binding\n");
-        texit(1);
-    }
-
+    
     //while loop
-    //create subframe, parent is previous curr frame
-    //want to bind bindings to that frame
-    //create new frame and binds
-
     //assign variables to new location, which has an undefined value
-    while (bindings->type != NULL_TYPE) {
-        symbol = car(car(bindings));
-        //bindingExpr = car(cdr(car(bindings)));
-        //printf("hit\n");
+    while (varBindings->type != NULL_TYPE) {
+        symbol = car(car(varBindings));
         tempBinding = cons(symbol, tempValue);
         subFrame->bindings = cons(tempBinding, subFrame->bindings);
-        bindings = cdr(bindings);
+        varBindings = cdr(varBindings);
     }
 
-    while(subFrame->bindings != NULL_TYPE){
-        bindingExpr = car(cdr(car(cdr(args)))); 
-        Value *result = eval(bindingExpr, subFrame);
-        Value *setbanginput = cons(car(car(car(args))),result);
+    //create linked list of evals
+    Value *evalList = makeNull();
+    //evaluates all binding expressions, put into linked list 
+    while(exprBindings->type != NULL_TYPE){
+        printTree(cdr(exprBindings));
+        bindingExpr = eval(cdr(exprBindings), subFrame); 
+        evalList = cons(bindingExpr, evalList);
+        exprBindings = cdr(exprBindings);
+    }
+
+    //assign variables to bindings
+    Value *tempSymbol = car(subFrame->bindings);
+    //init setbanginput, format : (symbol, evaluated expression)
+    
+
+    while(tempSymbol->type != NULL_TYPE && evalList->type != NULL_TYPE){
+        Value *setbanginput = makeNull();
+        setbanginput = cons(car(evalList), setbanginput);
+        setbanginput = cons(car(tempSymbol), setbanginput);
         evalSetBang(setbanginput, subFrame);
-        subFrame->bindings = cdr(subFrame->bindings);
-
-
-        //assign bindings to subframe
-       
-        //tempBinding = cons(tempValue->s, eval(bindingExpr,subFrame));
-        //subFrame->bindings = cons(tempBinding, subFrame->bindings);
-
-        //iterate to next bindings
+        tempSymbol = cdr(tempSymbol);
+        evalList = cdr(evalList);
     }
-    return eval(car(expression), subFrame);
-//     //eval expression
-//     printf("before error\n");
-//     while(cdr(expression)->type != NULL_TYPE){
-//         eval(car(expression), subFrame);
-//         expression = cdr(expression);
-//     }
-//     printf("made it through\n");
-//     //return evaluated expressions
-// return eval(car(expression),subFrame);
+    if((tempSymbol->type == NULL_TYPE && evalList->type != NULL_TYPE) || (tempSymbol->type != NULL_TYPE && evalList->type == NULL_TYPE)){
+        printf("Evaluation error: number of variables do not match expressions\n");
+        }
+
+    while(cdr(expression)->type != NULL_TYPE){
+        eval(car(expression), subFrame);
+        expression = cdr(expression);
+        printf("while3check\n");
+    }
+return eval(car(expression),subFrame);
 
 
 
@@ -563,6 +562,7 @@ Value *evalCond(Value *args, Frame *frame) {
         }
         current = cdr(current);
     }
+    return NULL;
 }
 
 /* The begin special form is used to evaluate expressions in a particular order.
@@ -735,6 +735,7 @@ Value *eval(Value *tree, Frame *frame) {
                     return apply(evaledOperator,evaledArgs);
                 } else {
                     printf("ERROR, method not defined\n");
+                    texit(1);
                 }
             }
             break;
